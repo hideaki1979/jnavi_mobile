@@ -35,9 +35,6 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
-# eas.json
-eas.json
-
 # android/ios
 android/
 ios/

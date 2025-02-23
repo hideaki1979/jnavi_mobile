@@ -14,14 +14,17 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.myapp"
+      "bundleIdentifier": "com.syumeikyo.jNavi",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.example.myapp"
+      "package": "com.syumeikyo.jNavi"
     },
     "web": {
       "favicon": "./assets/favicon.png"
