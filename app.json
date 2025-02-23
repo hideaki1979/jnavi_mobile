@@ -3,6 +3,7 @@
     "name": "jNavi",
     "slug": "jNavi",
     "version": "1.0.0",
+    "owner": "syumeikyo",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
