@@ -9,6 +9,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     slug: config.slug ?? "jnavi",
     extra: {
         ...config.extra,
-        apiUrl: process.env.API_URL ?? "http://localhost:3000",
+        apiUrl: process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000",
     }
 });
