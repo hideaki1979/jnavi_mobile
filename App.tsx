@@ -4,7 +4,7 @@ import { StyleSheet, Text, View, Pressable, TextInput } from 'react-native';
 import axios from 'axios';
 import Constants from 'expo-constants';
 
-const App: React.FC = () => {
+export default function App() {
   const [inputText, setInputText] = useState<string>('');
   const [result, setResult] = useState<string>('');
   const [isHovered, setIsHovered] = useState(false);
@@ -64,7 +64,7 @@ const App: React.FC = () => {
       <Text style={styles.responseText}>{result}</Text>
       <StatusBar style="auto" />
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -108,4 +108,3 @@ const styles = StyleSheet.create({
   },
 });
 
-export default App;
