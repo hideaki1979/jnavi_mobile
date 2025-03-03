@@ -60,7 +60,7 @@ export default function App() {
         </Pressable>
       </View>
       <Text>Open up App.tsx to start working on your app!</Text>
-      <Text>testtesttest_citestdayo!!!</Text>
+      <Text>test_citestdayo!!!</Text>
       <Text style={styles.responseText}>{result}</Text>
       <StatusBar style="auto" />
     </View>
