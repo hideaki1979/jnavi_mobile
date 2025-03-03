@@ -1,4 +1,4 @@
-name: Deploy to development
+name: Deploy to production
 
 on:
   push:
@@ -10,10 +10,10 @@ jobs:
     type: build
     params:
       platform: android
-      profile: development
+      profile: production
 #  ios_production_build:
 #    name: Build iOS
 #    type: build
 #    params:
 #      platform: ios
-#      profile: development
+# profile: production
