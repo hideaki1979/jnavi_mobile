@@ -2,6 +2,7 @@
   "expo": {
     "name": "jNavi",
     "slug": "jNavi",
+    "scheme": "jnavi",
     "version": "1.0.0",
     "owner": "syumeikyo",
     "orientation": "portrait",
@@ -34,6 +35,9 @@
       "eas": {
         "projectId": "830a1ac5-63d1-4f2a-bae3-70690b43e236"
       }
-    }
+    },
+    "plugins": [
+      "expo-router"
+    ]
   }
 }
