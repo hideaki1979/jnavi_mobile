@@ -1,11 +1,17 @@
 import {
-    View, ScrollView, Platform, KeyboardAvoidingView, StyleSheet, Keyboard
+    View, ScrollView, Platform, KeyboardAvoidingView, StyleSheet
 } from "react-native"
-import { Text, TextInput, Button, Checkbox, Appbar, useTheme, Switch } from "react-native-paper"
+import {
+    Text, TextInput, Button, Checkbox, Appbar, useTheme, Switch, Snackbar
+} from "react-native-paper"
 import { useForm, Controller } from "react-hook-form"
 import { useRouter } from "expo-router"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { StatusBar } from "expo-status-bar"
+import { createStore } from "@/src/api/api"
+import { useState } from "react"
+import { StoreData } from "@/src/types/store"
+import { StoreApiResponse } from "@/src/types/storeApiResponse"
 
 /**
  * 店舗情報登録画面コンポーネント
@@ -16,9 +22,13 @@ import { StatusBar } from "expo-status-bar"
  */
 export default function StoreCreate() {
     // フォームの状態管理 (React Hook Form)
-    const { control, handleSubmit, watch, setValue } = useForm<FormData>({
+    const { control, handleSubmit, watch, setValue, formState: { isSubmitting, errors } } = useForm<StoreData>({
         defaultValues: {
             // デフォルト値を設定
+            store_name: "",
+            address: "",
+            business_hours: "",
+            regular_holidays: "",
             prior_meal_voucher: false,
             topping_garlic: [],
             topping_vegetable: [],
@@ -27,10 +37,20 @@ export default function StoreCreate() {
             noodle_fitness: [],
             is_all_increased: false,
             is_lot: false
-        }
+        },
+        mode: "onBlur"  // フォーカスが外れた時にバリデーションを実行
     })
     const router = useRouter()
     const theme = useTheme()
+
+    // スナックバーの状態管理
+    const [snackbarVisible, setSnackbarVisible] = useState(false)
+    const [snackbarMessage, setSnackbarMessage] = useState("")
+    const [snackbarError, setSnackbarError] = useState(false)
+    const [redirectToDetail, setRedirectToDetail] = useState(false)
+
+    // 暫定対応で登録後に詳細画面遷移させるため店舗IDを状態管理
+    const [storeId, setStoreId] = useState<string>("")
 
     // トッピングと麺の選択肢
     const toppingOptions = ["無し", "少なめ", "普通", "ちょいマシ", "マシ", "マシマシ"]
@@ -45,51 +65,57 @@ export default function StoreCreate() {
     } as const
 
     /**
-     * フォームデータの型定義
-     */
-    type FormData = {
-        // 店舗基本情報
-        store_name: string;
-        branch_name: string;
-        address: string;
-        business_hours: string;
-        regular_holidays: string;
-
-        // 事前食券購入有無
-        prior_meal_voucher: boolean;
-
-        // トッピングコール詳細
-        topping_garlic: string[];
-        topping_vegetable: string[];
-        topping_oil: string[];
-        topping_soy_sauce: string[];
-
-        // 麺の硬さ
-        noodle_fitness: string[];
-
-        // トッピングコール補足
-        topping_details: string;
-        call_details: string;
-
-        // 全体増量の有無
-        is_all_increased: boolean;
-
-        // ロット制の有無
-        is_lot: boolean;
-        lot_detail: string;
-    }
-
-    /**
      * フォーム送信時の処理
      * @param data フォームから送信されたデータ
      */
-    const onSubmit = (data: FormData) => {
-        console.log(data)   // デバッグ用ログ出力
-        router.push("/store/detail")    // 暫定で詳細画面遷移。実際はAPI送信処理を実装
+    const onSubmit = async (data: StoreData) => {
+        try {
+            if (Object.keys(errors).length > 0) {
+                setSnackbarMessage("必須項目を入力してください")
+                setSnackbarError(true)
+                setSnackbarVisible(true)
+                return
+            }
+            console.log(data)   // デバッグ用ログ出力
+
+            // APIを使用して店舗情報を登録
+            const response: StoreApiResponse = await createStore(data)
+            console.log("レスポンス情報：", response)
+            if (response.data.store.id) {
+                setStoreId(response.data.store.id)
+            } else {
+                setStoreId("2")
+            }
+
+            // 成功メッセージを表示
+            setSnackbarMessage("店舗情報を登録しました")
+            setSnackbarError(false)
+            setSnackbarVisible(true)
+            setRedirectToDetail(true)
+        } catch (error) {
+            // エラー処理
+            setSnackbarMessage(error instanceof Error ? error.message : "店舗情報登録処理でエラーが発生しました")
+            setSnackbarError(true)
+            setSnackbarVisible(true)
+        }
     }
 
-    // チェックボックスの選択状態を更新する関数
-    const handleCheckboxChange = (field: keyof FormData, option: string, currentValues: string[]) => {
+    // SnackBar表示後に画面遷移
+    const handleSnackbarDismiss = () => {
+        setSnackbarVisible(false)
+        if (redirectToDetail) {
+            router.push(`store/detail?id=${storeId}`)
+            setRedirectToDetail(false)
+        }
+    }
+
+    /**
+     * チェックボックスの選択状態を更新する関数
+     * @param field フォーム内のフィールド名 (StoreDataのキー)
+     * @param option 選択されたオプション文字列
+     * @param currentValues 現在の選択値の配列
+     */
+    const handleCheckboxChange = (field: keyof StoreData, option: string, currentValues: string[]) => {
         if (currentValues.includes(option)) {
             // 選択済みの場合は選択を解除
             setValue(field, currentValues.filter(v => v !== option))
@@ -100,18 +126,24 @@ export default function StoreCreate() {
     }
 
     return (
+        // 安全領域を確保するためのコンテナ
         <SafeAreaView
             style={{ flex: 1, backgroundColor: theme.colors.background }}
             edges={[]}
         >
+            {/* キーボード表示時に入力フィールドがキーボードに隠れないようにするコンテナ */}
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 style={{ flex: 1 }}
-                keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 24} // iOSでオフセットを追加
+                keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 32} // iOSでオフセットを追加
             >
+                {/* 画面上部のナビゲーションバー */}
                 <Appbar.Header>
+                    {/* 戻るボタン */}
                     <Appbar.BackAction onPress={() => router.back()} />
+                    {/* 画面タイトル */}
                     <Appbar.Content title="店舗情報登録" />
+                    {/* 保存ボタン */}
                     <Appbar.Action
                         icon="content-save"
                         onPress={handleSubmit(onSubmit)}
@@ -126,41 +158,126 @@ export default function StoreCreate() {
                     <Controller
                         control={control}
                         name="store_name"
-                        render={({ field }) => (
-                            <TextInput
-                                label="店舗名"
-                                value={field.value}
-                                onChangeText={field.onChange}
-                                onBlur={() => Keyboard.dismiss()} // フォーカス外れたらキーボードを閉じる
-                            />
+                        rules={{
+                            required: "店舗名は必須項目です"
+                        }}
+                        render={({ field, fieldState: { error } }) => (
+                            <>
+                                <TextInput
+                                    mode="outlined"
+                                    label={
+                                        <Text>
+                                            店舗名 <Text style={{ color: theme.colors.error }}>*</Text>
+                                        </Text>
+                                    }
+                                    value={field.value}
+                                    onChangeText={field.onChange}
+                                    onBlur={field.onBlur}
+                                    error={!!error}
+                                />
+                                {error && (
+                                    <Text style={{ color: theme.colors.error, fontSize: 10 }}>
+                                        {error.message}
+                                    </Text>
+                                )}
+                            </>
                         )}
                     />
                     <Controller
                         control={control}
                         name="branch_name"
                         render={({ field }) => (
-                            <TextInput label="支店名" value={field.value} onChangeText={field.onChange} />
+                            <TextInput
+                                mode="outlined"
+                                label="支店名"
+                                value={field.value}
+                                onChangeText={field.onChange}
+                            />
                         )}
                     />
                     <Controller
                         control={control}
                         name="address"
-                        render={({ field }) => (
-                            <TextInput label="住所" value={field.value} onChangeText={field.onChange} />
+                        rules={{
+                            required: "住所は必須項目です"
+                        }}
+                        render={({ field, fieldState: { error } }) => (
+                            <>
+                                <TextInput
+                                    mode="outlined"
+                                    label={
+                                        <Text>
+                                            住所 <Text style={{ color: theme.colors.error }}>*</Text>
+                                        </Text>
+                                    }
+                                    value={field.value}
+                                    onChangeText={field.onChange}
+                                    onBlur={field.onBlur}
+                                    error={!!error}
+                                />
+                                {error && (
+                                    <Text style={{ color: theme.colors.error, fontSize: 10 }}>
+                                        {error.message}
+                                    </Text>
+                                )}
+                            </>
                         )}
+
                     />
                     <Controller
                         control={control}
                         name="business_hours"
-                        render={({ field }) => (
-                            <TextInput label="営業時間" value={field.value} onChangeText={field.onChange} />
+                        rules={{
+                            required: "営業時間は必須項目です"
+                        }}
+                        render={({ field, fieldState: { error } }) => (
+                            <>
+                                <TextInput
+                                    mode="outlined"
+                                    label={
+                                        <Text>
+                                            営業時間 <Text style={{ color: theme.colors.error }}>*</Text>
+                                        </Text>
+                                    }
+                                    value={field.value}
+                                    onChangeText={field.onChange}
+                                    onBlur={field.onBlur}
+                                    error={!!error}
+                                />
+                                {error && (
+                                    <Text style={{ color: theme.colors.error, fontSize: 10 }}>
+                                        {error.message}
+                                    </Text>
+                                )}
+                            </>
                         )}
                     />
                     <Controller
                         control={control}
                         name="regular_holidays"
-                        render={({ field }) => (
-                            <TextInput label="定休日" value={field.value} onChangeText={field.onChange} />
+                        rules={{
+                            required: "定休日は必須項目です"
+                        }}
+                        render={({ field, fieldState: { error } }) => (
+                            <>
+                                <TextInput
+                                    mode="outlined"
+                                    label={
+                                        <Text>
+                                            定休日 <Text style={{ color: theme.colors.error }}>*</Text>
+                                        </Text>
+                                    }
+                                    value={field.value}
+                                    onChangeText={field.onChange}
+                                    onBlur={field.onBlur}
+                                    error={!!error}
+                                />
+                                {error && (
+                                    <Text style={{ color: theme.colors.error, fontSize: 10 }}>
+                                        {error.message}
+                                    </Text>
+                                )}
+                            </>
                         )}
                     />
 
@@ -182,7 +299,7 @@ export default function StoreCreate() {
                     {/* トッピングコール詳細入力フィールド群 */}
                     <Text style={styles.sectionTitle}>トッピングコール情報</Text>
                     {Object.entries(toppingFieldMap).map(([label, fieldName]) => {
-                        const currentValues = watch(label as keyof FormData) as string[] || []
+                        const currentValues = watch(label as keyof StoreData) as string[] || []
                         return (
                             <View key={label} style={styles.optionContainer}>
                                 <Text style={styles.optionLabel}>{fieldName}</Text>
@@ -193,7 +310,7 @@ export default function StoreCreate() {
                                                 label={option}
                                                 status={currentValues.includes(option) ? "checked" : "unchecked"}
                                                 onPress={() => handleCheckboxChange(
-                                                    label as keyof FormData,
+                                                    label as keyof StoreData,
                                                     option,
                                                     currentValues
                                                 )}
@@ -239,7 +356,17 @@ export default function StoreCreate() {
                         control={control}
                         name="topping_details"
                         render={({ field }) => (
-                            <TextInput label="トッピング詳細" value={field.value} onChangeText={field.onChange} />
+                            <TextInput
+                                mode="outlined"
+                                label="トッピング詳細"
+                                value={field.value}
+                                onChangeText={field.onChange}
+                                multiline={true}
+                                numberOfLines={4}
+                                style={{
+                                    minHeight: 120
+                                }}
+                            />
                         )}
                     />
 
@@ -247,7 +374,15 @@ export default function StoreCreate() {
                         control={control}
                         name="call_details"
                         render={({ field }) => (
-                            <TextInput label="コール詳細" value={field.value} onChangeText={field.onChange} />
+                            <TextInput
+                                mode="outlined"
+                                label="コール詳細"
+                                value={field.value}
+                                onChangeText={field.onChange}
+                                multiline={true}
+                                numberOfLines={4}
+                                style={{ minHeight: 120 }}
+                            />
                         )}
                     />
 
@@ -286,18 +421,46 @@ export default function StoreCreate() {
                         control={control}
                         name="lot_detail"
                         render={({ field }) => (
-                            <TextInput label="ロット詳細" value={field.value} onChangeText={field.onChange} />
+                            <TextInput
+                                mode="outlined"
+                                label="ロット詳細"
+                                value={field.value}
+                                onChangeText={field.onChange}
+                                multiline={true}
+                                numberOfLines={4}
+                                style={{ minHeight: 120 }}
+                            />
                         )}
                     />
                     {/* 登録ボタン */}
                     <Button
                         mode="contained"
-                        onPress={handleSubmit(onSubmit)}
+                        onPress={handleSubmit(
+                            onSubmit, () => {
+                                setSnackbarMessage("必須項目を入力してください")
+                                setSnackbarError(true)
+                                setSnackbarVisible(true)
+                            })}
                         style={{ marginTop: 16 }}
+                        disabled={isSubmitting}
+                        loading={isSubmitting}
                     >
                         登録
                     </Button>
                 </ScrollView>
+                <Snackbar
+                    visible={snackbarVisible}
+                    onDismiss={handleSnackbarDismiss}
+                    duration={3000}
+                    style={{
+                        backgroundColor: snackbarError ? theme.colors.error : theme.colors.primary
+                    }}
+                    wrapperStyle={{
+                        bottom: Platform.OS === 'ios' ? 20 : 10
+                    }}
+                >
+                    {snackbarMessage}
+                </Snackbar>
             </KeyboardAvoidingView>
         </SafeAreaView>
     )
