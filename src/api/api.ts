@@ -2,7 +2,7 @@ import axios from "axios"
 import Constants from "expo-constants"
 import { StoreData } from "../types/store"
 import { Platform } from "react-native"
-import { StoreApiResponse } from "../types/storeApiResponse"
+import { MapApiResponse, MapData, StoreApiResponse, StoreGetApiResponse } from "../types/storeApiResponse"
 
 const getApiUrl = () => {
     const { configApiUrl } = Constants.expoConfig?.extra || {}
@@ -30,7 +30,6 @@ export const createStore = async (storeData: StoreData): Promise<StoreApiRespons
     if (!apiUrl) {
         throw new Error('APIのURLが設定されてません！')
     }
-    console.log(`API接続先： ${apiUrl}`)
     try {
         const response = await axios.post(`${apiUrl}/stores`, storeData, {
             headers: {
@@ -54,7 +53,7 @@ export const createStore = async (storeData: StoreData): Promise<StoreApiRespons
  * @param id 取得する店舗ID
  * @returns 取得した店舗データ
  */
-export const getStoreById = async (id: string): Promise<StoreData> => {
+export const getStoreById = async (id: string): Promise<StoreGetApiResponse> => {
     const apiUrl = getApiUrl()
     if (!apiUrl) {
         throw new Error('APIのURLが設定されてません！')
@@ -67,6 +66,44 @@ export const getStoreById = async (id: string): Promise<StoreData> => {
             }
         })
         return response.data
+
+    } catch (error) {
+        console.error("店舗情報取得エラー", error)
+        if (axios.isAxiosError(error)) {
+            throw new Error(`店舗情報取得時にエラーが発生： ${error.response?.data?.message || error.message}`)
+        } else {
+            throw new Error("店舗情報取得時に予期せぬエラーが発生")
+        }
+    }
+}
+
+/**
+ * Map情報を全件取得するAPI関数
+ * @returns 取得したMapデータ
+ */
+export const getMapAll = async (): Promise<MapData[]> => {
+    const apiUrl = getApiUrl()
+    try {
+        const response = await axios.get<MapApiResponse>(`${apiUrl}/maps`, {
+            headers: {
+                "Content-Type": "application/json"
+            }
+        })
+        // console.log('Map情報取得データ：', response.data.data)
+
+        const mapDataArray = response.data.data.map(item => ({
+            id: typeof item.id === 'string' ? Number(item.id) : item.id,
+            latitude: typeof item.latitude === 'string' ? Number(item.latitude) : item.latitude,
+            longitude: typeof item.longitude === 'string' ? Number(item.longitude) : item.longitude,
+            store: {
+                id: typeof item.store.id === 'string' ? Number(item.store.id) : item.store.id,
+                store_name: item.store.store_name,
+                branch_name: item.store.branch_name,
+                address: item.store.address
+            }
+        }))
+        console.log("型変換後Mapデータ：", mapDataArray)
+        return mapDataArray
 
     } catch (error) {
         console.error("店舗情報取得エラー", error)

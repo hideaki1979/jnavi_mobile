@@ -19,6 +19,9 @@
       "bundleIdentifier": "com.syumeikyo.jNavi",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
+      },
+      "config": {
+        "googleMapsApiKey": "AIzaSyCgq9tyJWnjgm0qPKeWmGzCenlTbrq7Tr8"
       }
     },
     "android": {
@@ -26,7 +29,12 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.syumeikyo.jNavi"
+      "package": "com.syumeikyo.jNavi",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCgq9tyJWnjgm0qPKeWmGzCenlTbrq7Tr8"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"

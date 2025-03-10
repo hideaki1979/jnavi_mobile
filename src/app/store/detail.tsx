@@ -2,11 +2,11 @@ import { ScrollView, StyleSheet, View } from 'react-native'
 import { Text, Button, useTheme, ActivityIndicator, Surface, Appbar, Divider, Chip, Snackbar } from 'react-native-paper'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { StoreData } from '@/src/types/store'
 import { getStoreById } from '@/src/api/api'
-import { MaterialCommunityIcons } from "@expo/vector-icons"
+import { FontAwesome6, MaterialCommunityIcons } from "@expo/vector-icons"
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { StatusBar } from 'expo-status-bar'
+import { ApiStoreData } from '@/src/types/storeApiResponse'
 
 /**
  * 店舗詳細画面コンポーネント
@@ -14,13 +14,25 @@ import { StatusBar } from 'expo-status-bar'
  * 登録された店舗情報の詳細表示を行う画面
  * @returns 店舗詳細表示コンポーネント
  */
+
+// 店舗詳細画面用型定義
+interface StoreDetail extends ApiStoreData {
+    // トッピングオプション（モックデータ含む）
+    topping_garlic: string[];
+    topping_vegetable: string[];
+    topping_oil: string[];
+    topping_soy_sauce: string[];
+    noodle_fitness: string[];
+}
+
+
 export default function StoreDetails() {
     const router = useRouter()
     const theme = useTheme()
     const { id } = useLocalSearchParams<{ id: string }>()
 
     // 店舗データの状態管理
-    const [storeData, setStoreData] = useState<StoreData | null>(null)
+    const [storeData, setStoreData] = useState<StoreDetail | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [snackBarVisible, setSnackBarVisible] = useState(false)
@@ -39,8 +51,10 @@ export default function StoreDetails() {
         const fetchStoreData = async () => {
             try {
                 const data = await getStoreById(id)
-                const toppingMockRamenData = {
-                    ...data,
+                // console.log("店舗情報取得データ：", data)
+                const store = data.data
+                const toppingMockRamenData: StoreDetail = {
+                    ...store,
                     topping_garlic: mockToppingOptions.topping_garlic,
                     topping_vegetable: mockToppingOptions.topping_vegetable,
                     topping_oil: mockToppingOptions.topping_oil,
@@ -73,7 +87,7 @@ export default function StoreDetails() {
         const result: Record<string, string[]> = {}
 
         Object.entries(toppingMap).forEach(([key, label]) => {
-            const array = storeData[key as keyof StoreData] as string[] | undefined
+            const array = storeData[key as keyof StoreDetail] as string[] | undefined
             if (array && array.length > 0) {
                 result[label] = array
             }
@@ -108,7 +122,6 @@ export default function StoreDetails() {
     // トッピングオプションを取得
     const toppingOptions = getAllToppingOptions()
 
-
     return (
         <SafeAreaView
             style={{ flex: 1, backgroundColor: theme.colors.background }}
@@ -123,14 +136,14 @@ export default function StoreDetails() {
                 <Surface style={styles.surface} elevation={2}>
                     {/* タイトル */}
                     <Text
-                        variant="headlineMedium"
+                        variant="headlineSmall"
                         style={styles.title}
                     >
                         {storeData.store_name}
                     </Text>
                     {storeData.branch_name && (
                         <Text
-                            variant='titleMedium'
+                            variant="titleLarge"
                             style={styles.subtitle}
                         >
                             {storeData.branch_name}
@@ -153,6 +166,19 @@ export default function StoreDetails() {
                                 size={20}
                                 color={theme.colors.primary} />
                             <Text style={styles.infoLabel}>
+                                住所：
+                            </Text>
+                            <Text style={styles.infoValue}>
+                                {storeData.address}
+                            </Text>
+                        </View>
+
+                        <View style={styles.infoRow}>
+                            <MaterialCommunityIcons
+                                name='map-clock'
+                                size={20}
+                                color={theme.colors.primary} />
+                            <Text style={styles.infoLabel}>
                                 営業時間：
                             </Text>
                             <Text style={styles.infoValue}>
@@ -162,12 +188,12 @@ export default function StoreDetails() {
 
                         <View style={styles.infoRow}>
                             <MaterialCommunityIcons
-                                name="clock"
+                                name="calendar"
                                 size={20}
                                 color={theme.colors.primary}
                             />
                             <Text style={styles.infoLabel}>
-                                定休日
+                                定休日：
                             </Text>
                             <Text style={styles.infoValue}>
                                 {storeData.regular_holidays}
@@ -185,7 +211,6 @@ export default function StoreDetails() {
                                 {storeData.prior_meal_voucher ? "あり" : "なし"}
                             </Text>
                         </View>
-
                     </View>
                     {/* トッピングオプションセクション - 店舗オプションを表示 */}
                     <View style={styles.section}>
@@ -201,7 +226,11 @@ export default function StoreDetails() {
                                 </Text>
                                 <View style={styles.chipContainer}>
                                     {options.map((option: string, index: number) => (
-                                        <Chip key={index} style={styles.chip} mode='outlined'>
+                                        <Chip
+                                            key={index}
+                                            style={styles.chip}
+                                            textStyle={styles.chipText}
+                                            mode='outlined'>
                                             {option}
                                         </Chip>
                                     ))}
@@ -215,7 +244,11 @@ export default function StoreDetails() {
                         <Text style={styles.toppingLabel}>麺の硬さ：</Text>
                         <View style={styles.chipContainer}>
                             {storeData.noodle_fitness.map((option, index) => (
-                                <Chip key={index} style={styles.chip} mode='outlined'>
+                                <Chip
+                                    key={index}
+                                    style={styles.chip}
+                                    textStyle={styles.chipText}
+                                    mode='outlined'>
                                     {option}
                                 </Chip>
                             ))}
@@ -232,25 +265,30 @@ export default function StoreDetails() {
                         </Text>
                         <Divider style={styles.divider} />
 
-                        <View style={styles.infoRow}>
-                            <MaterialCommunityIcons
-                                name="food"
-                                size={20}
-                                color={theme.colors.primary}
-                            />
-                            <Text style={styles.infoLabel}>トッピング詳細：</Text>
-                            <Text style={styles.infoValue}>
+                        <View style={styles.detailSection}>
+                            <View style={styles.detailHeader}>
+                                <FontAwesome6
+                                    name="bowl-food"
+                                    size={20}
+                                    color={theme.colors.primary}
+                                />
+                                <Text style={styles.infoLabel}>トッピング詳細：</Text>
+                            </View>
+                            <Text style={styles.detailText}>
                                 {storeData.topping_details}
                             </Text>
                         </View>
-                        <View style={styles.infoRow}>
-                            <MaterialCommunityIcons
-                                name='microphone'
-                                size={20}
-                                color={theme.colors.primary}
-                            />
-                            <Text style={styles.infoLabel}>コール詳細：</Text>
-                            <Text style={styles.infoValue}>
+
+                        <View style={styles.detailSection}>
+                            <View style={styles.detailHeader}>
+                                <MaterialCommunityIcons
+                                    name='microphone'
+                                    size={20}
+                                    color={theme.colors.primary}
+                                />
+                                <Text style={styles.infoLabel}>コール詳細：</Text>
+                            </View>
+                            <Text style={styles.detailText}>
                                 {storeData.call_details}
                             </Text>
                         </View>
@@ -269,11 +307,10 @@ export default function StoreDetails() {
 
                     {/* ロット情報セクション */}
                     <View style={styles.section}>
-                        <Text variant='labelMedium' style={styles.section}>
+                        <Text variant='titleMedium' style={styles.sectionTitle}>
                             ロット情報
                         </Text>
                         <Divider style={styles.divider} />
-
                         <View style={styles.infoRow}>
                             <MaterialCommunityIcons
                                 name='account-group'
@@ -285,14 +322,16 @@ export default function StoreDetails() {
                                 {storeData.is_lot ? 'あり' : 'なし'}
                             </Text>
                             {storeData.is_lot && (
-                                <View style={styles.infoRow}>
-                                    <MaterialCommunityIcons
-                                        name='information'
-                                        size={20}
-                                        color={theme.colors.primary}
-                                    />
-                                    <Text style={styles.infoLabel}>ロット詳細</Text>
-                                    <Text style={styles.infoValue}>
+                                <View style={styles.detailSection}>
+                                    <View style={styles.detailHeader}>
+                                        <MaterialCommunityIcons
+                                            name='information'
+                                            size={20}
+                                            color={theme.colors.primary}
+                                        />
+                                        <Text style={styles.infoLabel}>ロット詳細</Text>
+                                    </View>
+                                    <Text style={styles.detailText}>
                                         {storeData.lot_detail}
                                     </Text>
                                 </View>
@@ -315,63 +354,87 @@ export default function StoreDetails() {
 
 const styles = StyleSheet.create({
     container: {
-
+        flex: 1,
+        padding: 16
     },
     loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20
 
     },
     errorContainer: {
-
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20
     },
     errorText: {
-
+        marginVertical: 16,
+        alignItems: 'center'
     },
     surface: {
-
+        padding: 16,
+        borderRadius: 8,
+        marginBottom: 32
     },
     title: {
-
+        fontWeight: 'bold',
+        marginBottom: 8
     },
     subtitle: {
-
+        marginBottom: 8
     },
     section: {
-
+        marginVertical: 8
     },
     sectionTitle: {
-
+        fontWeight: "bold"
     },
     divider: {
-
+        marginBottom: 8
     },
     infoRow: {
-
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 8,
+        flexWrap: "wrap"
     },
     infoLabel: {
-
+        fontWeight: "bold",
+        marginHorizontal: 8
     },
     infoValue: {
-
+        flex: 1
     },
     toppingCategory: {
-
+        marginBottom: 16
     },
     toppingLabel: {
-
+        fontWeight: "bold",
+        marginBottom: 8
     },
     chipContainer: {
-
+        flexDirection: "row",
+        flexWrap: "wrap"
     },
     chip: {
-
+        margin: 4
     },
     chipText: {
-
+        fontSize: 10
     },
-    noData: {
-
+    detailSection: {
+        marginBottom: 16
     },
-    backButton: {
-
+    detailHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 8
+    },
+    detailText: {
+        paddingLeft: 28,
+        lineHeight: 20
     }
 })
