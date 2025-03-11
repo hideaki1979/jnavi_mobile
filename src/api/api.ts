@@ -5,7 +5,8 @@ import { Platform } from "react-native"
 import { MapApiResponse, MapData, StoreApiResponse, StoreGetApiResponse } from "../types/storeApiResponse"
 
 const getApiUrl = () => {
-    const { configApiUrl } = Constants.expoConfig?.extra || {}
+    const { apiUrl } = Constants.expoConfig?.extra || {}
+    console.log(apiUrl)
 
     // 開発環境でのプラットフォーム別でAPI接続URLを切り分け
     if (__DEV__) {
@@ -14,9 +15,8 @@ const getApiUrl = () => {
         }
         return 'http://localhost:3000'
     }
-
     // 設定値またはデフォルト値を返す
-    return configApiUrl || 'http://localhost:3000'
+    return apiUrl || 'http://localhost:3000'
 }
 
 /**
@@ -27,6 +27,7 @@ const getApiUrl = () => {
 export const createStore = async (storeData: StoreData): Promise<StoreApiResponse> => {
     // Constantsから設定されたAPIエンドポイントを取得
     const apiUrl = getApiUrl()
+    console.log(apiUrl)
     if (!apiUrl) {
         throw new Error('APIのURLが設定されてません！')
     }
