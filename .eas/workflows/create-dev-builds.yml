@@ -1,16 +1,16 @@
-name: Deploy to development
+# name: Deploy to development
 
-on:
-  push:
-    branches: ["main"]
+# on:
+#   push:
+#     branches: ["main"]
 
-jobs:
-  android_production_build:
-    name: Build Android
-    type: build
-    params:
-      platform: android
-      profile: development
+# jobs:
+#   android_production_build:
+#     name: Build Android
+#     type: build
+#     params:
+#       platform: android
+#       profile: development
 #  ios_production_build:
 #    name: Build iOS
 #    type: build

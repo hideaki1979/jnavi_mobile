@@ -1,11 +1,12 @@
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useState } from 'react'
 import { Dimensions, StyleSheet, View } from 'react-native'
-import MapView, { Marker } from 'react-native-maps'
+import MapView, { Callout, Marker } from 'react-native-maps'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { Appbar, useTheme } from 'react-native-paper'
+import { Appbar, Text, useTheme } from 'react-native-paper'
 import { getMapAll } from '@/src/api/api'
 import { MapData } from '@/src/types/storeApiResponse'
+import { router } from 'expo-router'
 
 export default function Map() {
     const theme = useTheme()
@@ -26,6 +27,11 @@ export default function Map() {
 
         fetchMapData()
     }, [])
+
+    // マーカーのCalloutタップ時に詳細画面へ遷移する。
+    const handleCalloutPress = (storeId: number) => {
+        router.push(`store/detail?id=${storeId}`)
+    }
 
     return (
         <SafeAreaView style={styles.container} edges={[]}>
@@ -48,9 +54,22 @@ export default function Map() {
                                 latitude: marker.latitude,
                                 longitude: marker.longitude
                             }}
-                            title={marker.store.branch_name ? `店舗名： ${marker.store.store_name} ${marker.store.branch_name}` : `店舗名： ${marker.store.store_name}`}
-                            description={marker.store.address}
-                        />
+                        >
+                            <Callout
+                                onPress={() => handleCalloutPress(Number(marker.store.id))}
+                                tooltip={false}
+                            >
+                                <View style={styles.calloutContainer}>
+                                    <Text style={[styles.calloutTitle, { color: theme.colors.primary }]}>
+                                        {marker.store.branch_name ? `店舗名： ${marker.store.store_name} ${marker.store.branch_name}` : `店舗名： ${marker.store.store_name}`}
+                                    </Text>
+                                    <Text style={styles.calloutDescription}>{marker.store.address}</Text>
+                                    <Text style={styles.calloutAction}>
+                                        詳細画面へ
+                                    </Text>
+                                </View>
+                            </Callout>
+                        </Marker>
                     ))}
                 </MapView>
             </View>
@@ -59,6 +78,8 @@ export default function Map() {
             <Appbar style={styles.bottomBar}>
                 <Appbar.Action icon="map" onPress={() => { }} />
                 <Appbar.Action icon="home" onPress={() => { }} />
+                <Appbar.Action icon="plus-box"
+                    onPress={() => { router.push(`store/create`) }} />
                 <Appbar.Action icon="tune-vertical" onPress={() => { }} />
                 <Appbar.Action icon="account" onPress={() => { }} />
             </Appbar>
@@ -82,5 +103,21 @@ const styles = StyleSheet.create({
     },
     bottomBar: {
 
+    },
+    calloutContainer: {
+        width: 300,
+        padding: 16
+    },
+    calloutTitle: {
+        fontSize: 14,
+        fontWeight: "bold",
+        marginBottom: 8
+    },
+    calloutDescription: {
+        marginBottom: 8
+    },
+    calloutAction: {
+        color: '#1976D2',
+        fontWeight: "bold"
     }
 })
