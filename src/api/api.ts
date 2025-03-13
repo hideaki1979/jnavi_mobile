@@ -6,7 +6,6 @@ import { MapApiResponse, MapData, StoreApiResponse, StoreGetApiResponse } from "
 
 const getApiUrl = () => {
     const { apiUrl } = Constants.expoConfig?.extra || {}
-    console.log(apiUrl)
 
     // 開発環境でのプラットフォーム別でAPI接続URLを切り分け
     if (__DEV__) {
@@ -103,7 +102,7 @@ export const getMapAll = async (): Promise<MapData[]> => {
                 address: item.store.address
             }
         }))
-        console.log("型変換後Mapデータ：", mapDataArray)
+        // console.log("型変換後Mapデータ：", mapDataArray)
         return mapDataArray
 
     } catch (error) {

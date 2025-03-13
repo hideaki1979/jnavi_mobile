@@ -80,7 +80,8 @@ export default function StoreCreate() {
 
             // APIを使用して店舗情報を登録
             const response: StoreApiResponse = await createStore(data)
-            console.log("レスポンス情報：", response)
+            // console.log("レスポンス情報：", response)
+            console.log("店舗ID：", response.data.store.id)
             if (response.data.store.id) {
                 setStoreId(response.data.store.id)
             } else {
@@ -102,6 +103,7 @@ export default function StoreCreate() {
 
     // SnackBar表示後に画面遷移
     const handleSnackbarDismiss = () => {
+        console.log(redirectToDetail)
         setSnackbarVisible(false)
         if (redirectToDetail) {
             router.push(`store/detail?id=${storeId}`)

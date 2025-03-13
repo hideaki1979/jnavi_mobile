@@ -101,7 +101,7 @@ export default function StoreDetails() {
         return (
             <View style={styles.errorContainer}>
                 <ActivityIndicator animating={true} size="large" />
-                <Text>Loading.....</Text>
+                <Text style={styles.loadingText}>Loading.....</Text>
             </View>
         )
     }
@@ -321,22 +321,22 @@ export default function StoreDetails() {
                             <Text style={styles.infoValue}>
                                 {storeData.is_lot ? 'あり' : 'なし'}
                             </Text>
-                            {storeData.is_lot && (
-                                <View style={styles.detailSection}>
-                                    <View style={styles.detailHeader}>
-                                        <MaterialCommunityIcons
-                                            name='information'
-                                            size={20}
-                                            color={theme.colors.primary}
-                                        />
-                                        <Text style={styles.infoLabel}>ロット詳細</Text>
-                                    </View>
-                                    <Text style={styles.detailText}>
-                                        {storeData.lot_detail}
-                                    </Text>
-                                </View>
-                            )}
                         </View>
+                        {storeData.is_lot && (
+                            <View style={styles.detailSection}>
+                                <View style={styles.detailHeader}>
+                                    <MaterialCommunityIcons
+                                        name='information'
+                                        size={20}
+                                        color={theme.colors.primary}
+                                    />
+                                    <Text style={styles.infoLabel}>ロット詳細</Text>
+                                </View>
+                                <Text style={styles.detailText}>
+                                    {storeData.lot_detail}
+                                </Text>
+                            </View>
+                        )}
                     </View>
                 </Surface>
             </ScrollView>
@@ -363,6 +363,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 20
 
+    },
+    loadingText: {
+        marginVertical: 16,
+        alignItems: 'center'
     },
     errorContainer: {
         flex: 1,
