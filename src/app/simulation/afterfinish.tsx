@@ -1,10 +1,12 @@
 import { router } from "expo-router"
 import { useState } from "react"
-import { StyleSheet, View } from "react-native"
-import { Appbar, Button, Card, Checkbox, Text } from "react-native-paper"
+import { ScrollView, StyleSheet, View } from "react-native"
+import { Button, Card, Checkbox, Text } from "react-native-paper"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { Asset } from 'expo-asset'
 import finishMealImageSource from '../../../public/images/jiro_counter2_manga_final.jpg'
+import HeaderAppBar from "@/src/components/navigation/HeaderAppBar"
+import BottomAppBar from "@/src/components/navigation/BottomAppBar"
 
 
 export default function AfterFinish() {
@@ -37,7 +39,6 @@ export default function AfterFinish() {
             resultText = "不正解"
         }
 
-
         router.push({
             pathname: `simulation/answer`,
             params: { resultText }
@@ -47,16 +48,10 @@ export default function AfterFinish() {
     return (
         <SafeAreaView style={styles.container} edges={[]}>
             {/* ヘッダー */}
-            <Appbar.Header>
-                <Appbar.BackAction onPress={() => router.back()} />
-                <Appbar.Content
-                    title="コールシミュレーション"
-                    titleStyle={{ fontSize: 16, fontWeight: "bold" }}
-                />
-            </Appbar.Header>
+            <HeaderAppBar showBackButton={true} title="コールシミュレーション" />
 
             {/* メインコンテンツ */}
-            <View style={styles.content}>
+            <ScrollView style={styles.content}>
                 <Card style={styles.cardContainer}>
                     <Card.Cover
                         source={{ uri: finishMealImage.uri }}
@@ -101,18 +96,9 @@ export default function AfterFinish() {
                 >
                     回答を見る
                 </Button>
-            </View>
+            </ScrollView>
             {/* フッター */}
-            <Appbar style={styles.bottomBar}>
-                <Appbar.Action icon="map" onPress={() => { router.push(`store/map`) }} />
-                <Appbar.Action icon="home" onPress={() => { }} />
-                <Appbar.Action icon="plus-box"
-                    onPress={() => { router.push(`store/create`) }} />
-                <Appbar.Action
-                    icon="tune-vertical"
-                    onPress={() => { router.push(`simulation/ticket_machine`) }} />
-                <Appbar.Action icon="account" onPress={() => { }} />
-            </Appbar>
+            <BottomAppBar showRoutes={["map", "create"]} />
         </SafeAreaView>
     )
 }
@@ -139,9 +125,7 @@ const styles = StyleSheet.create({
         marginBottom: 32
     },
     nextButton: {
-
-    },
-    bottomBar: {
-        justifyContent: "space-evenly"
+        width: "50%",
+        alignSelf: "center"
     }
 })

@@ -3,11 +3,13 @@ import { useEffect, useState } from 'react'
 import { Alert, Dimensions, Platform, StyleSheet, View } from 'react-native'
 import MapView, { Callout, Marker, Region } from 'react-native-maps'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { ActivityIndicator, Appbar, Text, useTheme } from 'react-native-paper'
-import { getMapAll } from '@/src/api/api'
+import { Text, useTheme } from 'react-native-paper'
+import { getMapAll } from '@/src/api/storeApi'
 import { MapData } from '@/src/types/storeApiResponse'
 import { router } from 'expo-router'
 import * as Location from 'expo-location'
+import BottomAppBar from '@/src/components/navigation/BottomAppBar'
+import LoadingErrorContainer from '@/src/components/feedback/LoadingErrorContainer'
 
 export default function Map() {
     const theme = useTheme()
@@ -97,12 +99,7 @@ export default function Map() {
     }
 
     if (loading) {
-        return (
-            <View style={[styles.container, styles.loadingContainer]}>
-                <ActivityIndicator size='large' />
-                <Text style={styles.loadingText}>Loading.....</Text>
-            </View>
-        )
+        return <LoadingErrorContainer loading={loading} error={null} />
     }
 
     return (
@@ -113,9 +110,10 @@ export default function Map() {
                 <MapView
                     style={styles.map}
                     region={initialRegion || undefined}
+                    showsUserLocation={true}
                 >
                     {/* 現在地のマーカー表示 */}
-                    {initialRegion && (
+                    {/* {initialRegion && (
                         <Marker
                             coordinate={{
                                 latitude: initialRegion.latitude,
@@ -124,7 +122,7 @@ export default function Map() {
                             pinColor='blue'
                             title='現在地'
                         />
-                    )}
+                    )} */}
 
                     {markers.map((marker) => (
                         <Marker
@@ -133,6 +131,7 @@ export default function Map() {
                                 latitude: marker.latitude,
                                 longitude: marker.longitude
                             }}
+                            pinColor='orange'
                         >
                             <Callout
                                 onPress={() => handleCalloutPress(Number(marker.store.id))}
@@ -154,16 +153,7 @@ export default function Map() {
             </View>
 
             {/* フッター (Appbar) */}
-            <Appbar style={styles.bottomBar}>
-                <Appbar.Action icon="map" onPress={() => { }} />
-                <Appbar.Action icon="home" onPress={() => { }} />
-                <Appbar.Action icon="plus-box"
-                    onPress={() => { router.push(`store/create`) }} />
-                <Appbar.Action
-                    icon="tune-vertical"
-                    onPress={() => { router.push(`simulation/ticket_machine`) }} />
-                <Appbar.Action icon="account" onPress={() => { }} />
-            </Appbar>
+            <BottomAppBar showRoutes={['create', 'simulation']} />
         </SafeAreaView>
     )
 }
@@ -200,12 +190,5 @@ const styles = StyleSheet.create({
     calloutAction: {
         color: '#1976D2',
         fontWeight: "bold"
-    },
-    loadingContainer: {
-        justifyContent: "center",
-        alignItems: 'center'
-    },
-    loadingText: {
-        marginTop: 16
     }
 })

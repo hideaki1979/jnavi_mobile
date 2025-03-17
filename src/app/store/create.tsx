@@ -2,16 +2,20 @@ import {
     View, ScrollView, Platform, KeyboardAvoidingView, StyleSheet
 } from "react-native"
 import {
-    Text, TextInput, Button, Checkbox, Appbar, useTheme, Switch, Snackbar
+    Text, TextInput, Button, Checkbox, useTheme, Switch, Snackbar
 } from "react-native-paper"
 import { useForm, Controller } from "react-hook-form"
-import { useRouter } from "expo-router"
+import { router } from "expo-router"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { StatusBar } from "expo-status-bar"
-import { createStore } from "@/src/api/api"
-import { useState } from "react"
-import { StoreData } from "@/src/types/store"
+import { createStore } from "@/src/api/storeApi"
+import { useEffect, useMemo, useState } from "react"
+import { StoreData, ToppingCall } from "@/src/types/store"
 import { StoreApiResponse } from "@/src/types/storeApiResponse"
+import HeaderAppBar from "@/src/components/navigation/HeaderAppBar"
+import { CallOptionData, ToppingData } from "@/src/types/topping"
+import { getCallOptions, getToppings } from "@/src/api/toppingApi"
+import LoadingErrorContainer from "@/src/components/feedback/LoadingErrorContainer"
 
 /**
  * 店舗情報登録画面コンポーネント
@@ -22,7 +26,7 @@ import { StoreApiResponse } from "@/src/types/storeApiResponse"
  */
 export default function StoreCreate() {
     // フォームの状態管理 (React Hook Form)
-    const { control, handleSubmit, watch, setValue, formState: { isSubmitting, errors } } = useForm<StoreData>({
+    const { control, handleSubmit, formState: { isSubmitting, errors } } = useForm<StoreData>({
         defaultValues: {
             // デフォルト値を設定
             store_name: "",
@@ -30,17 +34,11 @@ export default function StoreCreate() {
             business_hours: "",
             regular_holidays: "",
             prior_meal_voucher: false,
-            topping_garlic: [],
-            topping_vegetable: [],
-            topping_oil: [],
-            topping_soy_sauce: [],
-            noodle_fitness: [],
             is_all_increased: false,
             is_lot: false
         },
         mode: "onBlur"  // フォーカスが外れた時にバリデーションを実行
     })
-    const router = useRouter()
     const theme = useTheme()
 
     // スナックバーの状態管理
@@ -50,19 +48,50 @@ export default function StoreCreate() {
     const [redirectToDetail, setRedirectToDetail] = useState(false)
 
     // 暫定対応で登録後に詳細画面遷移させるため店舗IDを状態管理
-    const [storeId, setStoreId] = useState<string>("")
+    const [storeId, setStoreId] = useState<number>(0)
 
-    // トッピングと麺の選択肢
-    const toppingOptions = ["無し", "少なめ", "普通", "ちょいマシ", "マシ", "マシマシ"]
-    const noodleOptions = ["柔らかめ", "普通", "硬め", "カタカタ"]
+    // トッピングとコールオプションのデータ管理
+    const [toppings, setToppings] = useState<ToppingData[]>([])
+    const [callOptions, setCallOptions] = useState<CallOptionData[]>([])
+    const [isLoading, setIsLoading] = useState(true)
+    const [loadError, setLoadError] = useState<string | null>(null)
 
-    // トッピングマッピング
-    const toppingFieldMap = {
-        topping_garlic: "ニンニク",
-        topping_vegetable: "野菜",
-        topping_oil: "アブラ",
-        topping_soy_sauce: "カラメ"
-    } as const
+    // 選択したコールオプションを状態管理
+    const [selectedOptions, setSelectedOptions] = useState<Record<number, number[]>>([])
+
+    // 初期ロード時にトッピング情報・コールオプション情報を取得
+    useEffect(() => {
+        const fetchToppingCallOptions = async () => {
+            try {
+                setIsLoading(true)
+
+                // // トッピング情報とコールオプション情報を並列で取得
+                const [toppingResponse, callOptionResponse] =
+                    await Promise.all([
+                        getToppings(), getCallOptions()
+                    ])
+                setToppings(toppingResponse)
+                setCallOptions(callOptionResponse)
+
+                // console.log('トッピングレスポンス：', toppingResponse)
+                // console.log('コールオプションレスポンス：', callOptionResponse)
+
+                // 選択状態の初期化
+                const initSelectedOptions: Record<number, number[]> = {}
+                toppingResponse.forEach(topping => {
+                    initSelectedOptions[topping.id] = []
+                })
+                setSelectedOptions(initSelectedOptions)
+
+            } catch (error) {
+                console.error('トッピング・コールオプション情報取得エラー：', error)
+                setLoadError('トッピング・コールオプション情報の取得に失敗しました。')
+            } finally {
+                setIsLoading(false)
+            }
+        }
+        fetchToppingCallOptions()
+    }, [])
 
     /**
      * フォーム送信時の処理
@@ -76,18 +105,26 @@ export default function StoreCreate() {
                 setSnackbarVisible(true)
                 return
             }
-            // console.log(data)   // デバッグ用ログ出力
 
-            // APIを使用して店舗情報を登録
-            const response: StoreApiResponse = await createStore(data)
-            // console.log("レスポンス情報：", response)
-            console.log("店舗ID：", response.data.store.id)
-            if (response.data.store.id) {
-                setStoreId(response.data.store.id)
-            } else {
-                setStoreId("2")
+            // トッピング情報を生成
+            const toppingCalls = generateToppingCalls()
+
+            // 送信データを作成
+            const submitData = {
+                ...data,
+                topping_calls: toppingCalls
             }
 
+            // console.log("送信トッピング情報", toppingCalls)   // デバッグ用ログ出力
+            // console.log("送信データ情報", submitData)   // デバッグ用ログ出力
+
+            // APIを使用して店舗情報を登録
+            const response: StoreApiResponse = await createStore(submitData)
+            console.log("店舗登録レスポンス情報：", JSON.stringify(response, null, 2))
+            // console.log("店舗ID：", response.data.store.id)
+            if (response.data.store.id) {
+                setStoreId(Number(response.data.store.id))
+            }
             // 成功メッセージを表示
             setSnackbarMessage("店舗情報を登録しました")
             setSnackbarError(false)
@@ -103,28 +140,104 @@ export default function StoreCreate() {
 
     // SnackBar表示後に画面遷移
     const handleSnackbarDismiss = () => {
-        console.log(redirectToDetail)
+        console.log("詳細画面リダイレクト：", redirectToDetail)
         setSnackbarVisible(false)
         if (redirectToDetail) {
-            router.push(`store/detail?id=${storeId}`)
+            router.push({
+                pathname: 'store/detail',
+                params: { id: storeId }
+            })
             setRedirectToDetail(false)
         }
     }
 
     /**
-     * チェックボックスの選択状態を更新する関数
-     * @param field フォーム内のフィールド名 (StoreDataのキー)
-     * @param option 選択されたオプション文字列
-     * @param currentValues 現在の選択値の配列
+     * チェックボックスの状態変更を処理する
+     * @param toppingId トッピングID
+     * @param optionId コールオプションID
+     * @param isChecked チェック状態
      */
-    const handleCheckboxChange = (field: keyof StoreData, option: string, currentValues: string[]) => {
-        if (currentValues.includes(option)) {
-            // 選択済みの場合は選択を解除
-            setValue(field, currentValues.filter(v => v !== option))
-        } else {
-            // 未選択の場合は追加
-            setValue(field, [...currentValues, option])
+    const handleCheckboxChange = (toppingId: number, optionId: number, isChecked: boolean) => {
+        setSelectedOptions(prev => {
+            const currentOptions = [...(prev[toppingId] || [])]
+
+            console.log("チェックボックス状態：", currentOptions)
+            if (isChecked) {
+                // オプション追加
+                if (!currentOptions.includes(optionId)) {
+                    return {
+                        ...prev,
+                        [toppingId]: [...currentOptions, optionId]
+                    }
+                }
+            } else {
+                // オプション削除
+                return {
+                    ...prev,
+                    [toppingId]: currentOptions.filter(id => id !== optionId)
+                }
+            }
+            return prev
+        })
+    }
+
+    // トッピングカテゴリー別コールオプションのマップをメモ化
+    const toppingCategoryOptionsMap = useMemo(() => {
+        const map: Record<number, CallOptionData[]> = {}
+
+        // 各トッピングカテゴリーに対応するコールオプションを事前に計算
+        if (toppings.length > 0 && callOptions.length > 0) {
+            // トッピングの種類ごとに結果をマップに保存する
+            toppings.forEach(topping => {
+                const categoryId = topping.topping_category
+
+                // カテゴリが登録されていない場合のみ処理
+                if (!map[categoryId]) {
+                    // そのカテゴリに対応するコールオプションをフィルタリング
+                    const optionForCategory = callOptions.filter(option =>
+                        option.call_category === categoryId
+                    )
+                    // 結果をマップに保存
+                    map[categoryId] = optionForCategory
+                }
+                console.log("MAP保存情報：", map)
+            })
         }
+        console.log("マップ全体情報：", map)
+        // 作成したマップを返す
+        return map
+    }, [toppings, callOptions]) // トッピングがコールオプションが変更時のみ再計算
+
+    /**
+     * 選択されたトッピングとコールオプションからIDのマッピングを生成する
+     */
+    const generateToppingCalls = (): ToppingCall[] => {
+        const result: ToppingCall[] = []
+
+        // 選択されたオプションをループして、topping_callsのデータを作成
+        Object.entries(selectedOptions).forEach(([toppingIdStr, optionIds]) => {
+            const toppingId = Number(toppingIdStr)
+            optionIds.forEach(optionId => {
+                // ToppingCallの配列にプッシュする
+                result.push({
+                    topping_id: toppingId,
+                    call_option_id: optionId,
+                    call_timing: "post_call",
+                    noodle_type_id: 1
+                })
+            })
+        })
+        console.log("選択コールオプション：", result)
+        return result
+    }
+
+    // データ読み込み中の表示
+    if (isLoading) {
+        return <LoadingErrorContainer loading={isLoading} error={null} />
+    }
+    // データ読み込みエラー時の処理
+    if (loadError) {
+        return <LoadingErrorContainer loading={false} error={loadError} />
     }
 
     return (
@@ -140,17 +253,11 @@ export default function StoreCreate() {
                 keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 32} // iOSでオフセットを追加
             >
                 {/* 画面上部のナビゲーションバー */}
-                <Appbar.Header>
-                    {/* 戻るボタン */}
-                    <Appbar.BackAction onPress={() => router.back()} />
-                    {/* 画面タイトル */}
-                    <Appbar.Content title="店舗情報登録" />
-                    {/* 保存ボタン */}
-                    <Appbar.Action
-                        icon="content-save"
-                        onPress={handleSubmit(onSubmit)}
-                    />
-                </Appbar.Header>
+                <HeaderAppBar
+                    title="店舗情報登録"
+                    showBackButton={true}
+                    rightAction={{ icon: "microphone", onPress: () => { } }}
+                />
                 <ScrollView
                     style={styles.scrollContainer}
                     contentContainerStyle={styles.contentContainer}
@@ -224,7 +331,6 @@ export default function StoreCreate() {
                                 )}
                             </>
                         )}
-
                     />
                     <Controller
                         control={control}
@@ -300,24 +406,26 @@ export default function StoreCreate() {
                     </View>
                     {/* トッピングコール詳細入力フィールド群 */}
                     <Text style={styles.sectionTitle}>トッピングコール情報</Text>
-                    {Object.entries(toppingFieldMap).map(([label, fieldName]) => {
-                        const currentValues = watch(label as keyof StoreData) as string[] || []
+                    {toppings.map(topping => {
+                        // トッピングカテゴリーに対応するコールオプションを取得
+                        const toppingCallOptions = toppingCategoryOptionsMap[topping.topping_category] || []
                         return (
-                            <View key={label} style={styles.optionContainer}>
-                                <Text style={styles.optionLabel}>{fieldName}</Text>
+                            <View key={topping.id} style={styles.optionContainer}>
+                                <Text style={styles.optionLabel}>{topping.topping_name}</Text>
                                 <View style={styles.optionGrid}>
-                                    {toppingOptions.map((option) => (
-                                        <View key={option} style={styles.checkboxContainer}>
+                                    {toppingCallOptions.map((option) => (
+                                        <View key={option.id} style={styles.checkboxContainer}>
                                             <Checkbox.Item
-                                                label={option}
-                                                status={currentValues.includes(option) ? "checked" : "unchecked"}
+                                                label={option.call_option_name}
+                                                status={selectedOptions[topping.id].includes(option.id) ? "checked" : "unchecked"}
                                                 onPress={() => handleCheckboxChange(
-                                                    label as keyof StoreData,
-                                                    option,
-                                                    currentValues
+                                                    topping.id,
+                                                    option.id,
+                                                    !selectedOptions[topping.id]?.includes(option.id)
                                                 )}
                                                 style={styles.checkboxItem}
                                                 labelStyle={styles.checkboxLabel}
+                                                mode={Platform.OS === "ios" ? "ios" : "android"}
                                             />
                                         </View>
                                     ))}
@@ -325,33 +433,6 @@ export default function StoreCreate() {
                             </View>
                         )
                     })}
-
-                    {/* 麺の硬さ選択 */}
-                    <View style={styles.optionContainer}>
-                        <Text style={styles.optionLabel}>麺の硬さ</Text>
-                        <View style={styles.optionGrid}>
-                            {noodleOptions.map((option) => {
-                                const currentValues = watch("noodle_fitness") as string[] || []
-                                return (
-                                    <View key={option} style={styles.checkboxContainer} >
-                                        <Checkbox.Item
-                                            label={option}
-                                            status={currentValues.includes(option) ? "checked" : "unchecked"}
-                                            onPress={() => handleCheckboxChange(
-                                                "noodle_fitness",
-                                                option,
-                                                currentValues
-                                            )}
-                                            style={styles.checkboxItem}
-                                            labelStyle={styles.checkboxLabel}
-                                            mode={Platform.OS === "ios" ? "ios" : "android"}
-                                        />
-                                    </View>
-                                )
-                            }
-                            )}
-                        </View>
-                    </View>
 
                     {/* 詳細情報入力フィールド群 */}
                     <Controller

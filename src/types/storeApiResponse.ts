@@ -1,8 +1,31 @@
+// トッピング情報の型定義
+export interface StoreToppingCall {
+    store_id: string | number;
+    topping_id: string | number;
+    call_option_id: string | number;
+    call_timing: string;
+    noodle_type_id: string | number;
+    topping: {
+        id: string | number;
+        topping_category: number;
+        topping_name: string;
+    };
+    call_option: {
+        id: string | number;
+        call_category: number;
+        call_option_name: string;
+    };
+    noodle_type: {
+        id: string | number;
+        noodle_type_name: string;
+    };
+}
+
 /**
- * 店舗登録画面APIレスポンスの型定義（店舗のみ）
+ * 店舗登録画面、店舗詳細画面の型定義（店舗情報+店舗別トッピングコール情報）
  */
 export interface ApiStoreData {
-    id: string;
+    id: string | number;
     store_name: string;
     branch_name?: string;
     address: string;
@@ -14,8 +37,9 @@ export interface ApiStoreData {
     topping_details?: string;
     call_details?: string;
     lot_detail?: string;
-    created_at: string;
-    updated_at: string;
+    created_at?: string;
+    updated_at?: string;
+    store_topping_calls?: StoreToppingCall[];
 }
 
 /**
@@ -26,8 +50,8 @@ export interface StoreApiResponse {
     data: {
         store: ApiStoreData;
         map: {
-            id: string;
-            store_id: string;
+            id: string | number;
+            store_id: string | number;
             latitude: string;
             longitude: string;
             created_at: string;

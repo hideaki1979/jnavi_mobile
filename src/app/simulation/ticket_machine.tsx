@@ -1,7 +1,9 @@
+import BottomAppBar from "@/src/components/navigation/BottomAppBar"
+import HeaderAppBar from "@/src/components/navigation/HeaderAppBar"
 import { router } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { StyleSheet, View } from "react-native"
-import { Appbar, Button, Card, Text, useTheme } from "react-native-paper"
+import { Button, Card, Text, useTheme } from "react-native-paper"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 
@@ -32,12 +34,7 @@ export default function TicketMachine() {
         <SafeAreaView edges={[]} style={styles.container} >
             <StatusBar style={theme.dark ? "light" : "dark"} />
             {/* ヘッダー */}
-            <Appbar.Header>
-                <Appbar.BackAction onPress={() => router.back()} />
-                <Appbar.Content
-                    title="コールシミュレーション"
-                />
-            </Appbar.Header>
+            <HeaderAppBar showBackButton={true} title="コールシミュレーション" />
 
             {/* 券売機 */}
             <View style={styles.ticketMachineContainer}>
@@ -71,16 +68,7 @@ export default function TicketMachine() {
             </View>
 
             {/* フッター */}
-            <Appbar style={styles.bottomBar}>
-                <Appbar.Action icon="map" onPress={() => { router.push(`store/map`) }} />
-                <Appbar.Action icon="home" onPress={() => { }} />
-                <Appbar.Action icon="plus-box"
-                    onPress={() => { router.push(`store/create`) }} />
-                <Appbar.Action
-                    icon="tune-vertical"
-                    onPress={() => { router.push(`simulation/ticket_machine`) }} />
-                <Appbar.Action icon="account" onPress={() => { }} />
-            </Appbar>
+            <BottomAppBar showRoutes={['map', 'create']} />
 
         </SafeAreaView>
 
@@ -121,10 +109,7 @@ const styles = StyleSheet.create({
         padding: 32
     },
     instructionText: {
-
-    },
-    bottomBar: {
-        justifyContent: "space-evenly"
+        lineHeight: 24
     }
 })
 

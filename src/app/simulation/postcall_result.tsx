@@ -1,10 +1,11 @@
+import HeaderAppBar from "@/src/components/navigation/HeaderAppBar"
 import { router, useLocalSearchParams } from "expo-router"
 import { StyleSheet, View } from "react-native"
 import { Appbar, Button, Text } from "react-native-paper"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 type callScreenParams = {
-    callText?: string
+    callText: string
 }
 
 export default function PostCallResult() {
@@ -17,18 +18,16 @@ export default function PostCallResult() {
     return (
         <SafeAreaView edges={[]} style={styles.container}>
             {/* ヘッダー */}
-            <Appbar.Header>
-                <Appbar.BackAction onPress={() => router.back()} />
-                <Appbar.Content
-                    title="コールシミュレーション"
-                    titleStyle={{ fontSize: 16, fontWeight: "bold" }}
-                />
-                <Appbar.Action
-                    icon="play-circle"
-                    size={32}
-                    onPress={() => { }}
-                />
-            </Appbar.Header>
+            <HeaderAppBar
+                showBackButton={true}
+                title="コールシミュレーション"
+                rightAction={{
+                    icon: "play-circle",
+                    size: 32,
+                    onPress: () => { }
+                }}
+            />
+
             <View style={styles.screenContainer}>
                 <Text style={styles.screenText}>
                     {callText ?? ''}

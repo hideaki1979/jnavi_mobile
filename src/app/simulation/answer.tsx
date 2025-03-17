@@ -1,6 +1,8 @@
+import BottomAppBar from "@/src/components/navigation/BottomAppBar"
+import HeaderAppBar from "@/src/components/navigation/HeaderAppBar"
 import { router, useLocalSearchParams } from "expo-router"
 import { StyleSheet, View } from "react-native"
-import { Appbar, Button, Text, useTheme } from "react-native-paper"
+import { Button, Text, useTheme } from "react-native-paper"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 type resultScreenParams = {
@@ -18,13 +20,8 @@ export default function Answer() {
     return (
         <SafeAreaView edges={[]} style={styles.container}>
             {/* ヘッダー */}
-            <Appbar.Header>
-                <Appbar.BackAction onPress={() => router.back()} />
-                <Appbar.Content
-                    title="コールシミュレーション"
-                    titleStyle={{ fontSize: 16, fontWeight: "bold" }}
-                />
-            </Appbar.Header>
+            <HeaderAppBar showBackButton={true} title="コールシミュレーション" />
+
             <View style={styles.screenContainer}>
                 <Text style={[styles.resultText, { color: theme.colors.primary }]}>
                     {resultText ?? ''}
@@ -48,16 +45,7 @@ export default function Answer() {
                 </Button>
             </View>
             {/* フッター */}
-            <Appbar style={styles.bottomBar}>
-                <Appbar.Action icon="map" onPress={() => { router.push(`store/map`) }} />
-                <Appbar.Action icon="home" onPress={() => { }} />
-                <Appbar.Action icon="plus-box"
-                    onPress={() => { router.push(`store/create`) }} />
-                <Appbar.Action
-                    icon="tune-vertical"
-                    onPress={() => { router.push(`simulation/ticket_machine`) }} />
-                <Appbar.Action icon="account" onPress={() => { }} />
-            </Appbar>
+            <BottomAppBar showRoutes={["map", "create"]} />
         </SafeAreaView>
     )
 }
@@ -84,8 +72,5 @@ const styles = StyleSheet.create({
     },
     nextButton: {
         width: "50%"
-    },
-    bottomBar: {
-        justifyContent: "space-evenly"
     }
 })

@@ -1,10 +1,12 @@
 import { router } from "expo-router"
 import { useState } from "react"
 import { ScrollView, StyleSheet, View } from "react-native"
-import { Appbar, Button, Card, RadioButton, Text } from "react-native-paper"
+import { Button, Card, RadioButton, Text } from "react-native-paper"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { Asset } from 'expo-asset'
 import preCallImageSource from '../../../public/images/jiro_counter2_manga_final.jpg'
+import HeaderAppBar from "@/src/components/navigation/HeaderAppBar"
+import BottomAppBar from "@/src/components/navigation/BottomAppBar"
 
 
 export default function PreCall() {
@@ -49,13 +51,7 @@ export default function PreCall() {
 
     return (
         <SafeAreaView style={styles.container} edges={[]}>
-            <Appbar.Header>
-                <Appbar.BackAction onPress={() => { router.back() }} />
-                <Appbar.Content
-                    title="コールシミュレーション"
-                    titleStyle={{ fontSize: 16, fontWeight: "bold" }}
-                />
-            </Appbar.Header>
+            <HeaderAppBar showBackButton={true} title="コールシミュレーション" />
             <ScrollView
                 style={styles.scrollContainer}
                 contentContainerStyle={styles.contentContainer}>
@@ -134,16 +130,7 @@ export default function PreCall() {
             </ScrollView>
 
             {/* フッター */}
-            <Appbar style={styles.bottomBar}>
-                <Appbar.Action icon="map" onPress={() => { router.push(`store/map`) }} />
-                <Appbar.Action icon="home" onPress={() => { }} />
-                <Appbar.Action icon="plus-box"
-                    onPress={() => { router.push(`store/create`) }} />
-                <Appbar.Action
-                    icon="tune-vertical"
-                    onPress={() => { router.push(`simulation/ticket_machine`) }} />
-                <Appbar.Action icon="account" onPress={() => { }} />
-            </Appbar>
+            <BottomAppBar showRoutes={['map', 'create']} />
         </SafeAreaView>
     )
 }

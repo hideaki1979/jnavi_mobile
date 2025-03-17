@@ -1,12 +1,16 @@
 import { ScrollView, StyleSheet, View } from 'react-native'
-import { Text, Button, useTheme, ActivityIndicator, Surface, Appbar, Divider, Chip, Snackbar } from 'react-native-paper'
-import { useLocalSearchParams, useRouter } from 'expo-router'
+import { Text, useTheme, Surface, Divider, Chip, Snackbar } from 'react-native-paper'
+import { useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { getStoreById } from '@/src/api/api'
+import { getStoreById } from '@/src/api/storeApi'
 import { FontAwesome6, MaterialCommunityIcons } from "@expo/vector-icons"
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { StatusBar } from 'expo-status-bar'
 import { ApiStoreData } from '@/src/types/storeApiResponse'
+import LoadingErrorContainer from '@/src/components/feedback/LoadingErrorContainer'
+import HeaderAppBar from '@/src/components/navigation/HeaderAppBar'
+import { CallOptionData, ToppingData } from '@/src/types/topping'
+import { getCallOptions, getToppings } from '@/src/api/toppingApi'
 
 /**
  * 店舗詳細画面コンポーネント
@@ -15,53 +19,57 @@ import { ApiStoreData } from '@/src/types/storeApiResponse'
  * @returns 店舗詳細表示コンポーネント
  */
 
-// 店舗詳細画面用型定義
-interface StoreDetail extends ApiStoreData {
-    // トッピングオプション（モックデータ含む）
-    topping_garlic: string[];
-    topping_vegetable: string[];
-    topping_oil: string[];
-    topping_soy_sauce: string[];
-    noodle_fitness: string[];
+// 整形されたトッピングオプションの型定義
+interface FormattedOptions {
+    [toppingName: string]: string[] // トッピング名をキーにして、対応するコールオプション名の配列を格納
 }
 
-
 export default function StoreDetails() {
-    const router = useRouter()
     const theme = useTheme()
     const { id } = useLocalSearchParams<{ id: string }>()
 
-    // 店舗データの状態管理
-    const [storeData, setStoreData] = useState<StoreDetail | null>(null)
+    // 店舗データと各種マスタデータの状態管理
+    const [storeData, setStoreData] = useState<ApiStoreData | null>(null)
+    const [, setToppings] = useState<ToppingData[]>([])
+    const [, setCallOptions] = useState<CallOptionData[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [snackBarVisible, setSnackBarVisible] = useState(false)
 
-    // トッピング情報モックデータ（DBを実装までの暫定）
-    const mockToppingOptions = {
-        topping_garlic: ['なし', '少なめ', '普通', 'マシ', 'マシマシ'],
-        topping_vegetable: ["なし", "少なめ", "普通", "マシ", "マシマシ"],
-        topping_oil: ["なし", "少なめ", "普通", "マシ", "マシマシ"],
-        topping_soy_sauce: ["なし", "少なめ", "普通", "マシ"],
-        noodle_fitness: ["柔らかめ", "普通", "硬め", "カタカタ"]
-    }
+    // 表示用に整形されたデータの状態
+    const [formattedOptions, setFormattedOptions] = useState<FormattedOptions>({})
+    const [noodleFitnessOptions, setNoodleFitnessOptions] = useState<string[]>([])
+    const [noodleAmountOptions, setNoodleAmountOptions] = useState<string[]>([])
 
     // APIから店舗情報を取得
     useEffect(() => {
-        const fetchStoreData = async () => {
+        const fetchStoreToppingCallData = async () => {
             try {
-                const data = await getStoreById(id)
-                // console.log("店舗情報取得データ：", data)
-                const store = data.data
-                const toppingMockRamenData: StoreDetail = {
-                    ...store,
-                    topping_garlic: mockToppingOptions.topping_garlic,
-                    topping_vegetable: mockToppingOptions.topping_vegetable,
-                    topping_oil: mockToppingOptions.topping_oil,
-                    topping_soy_sauce: mockToppingOptions.topping_soy_sauce,
-                    noodle_fitness: mockToppingOptions.noodle_fitness
+                setLoading(true)
+
+                // 店舗情報とコールトッピング情報を並列で取得
+                const [storeRes, toppingRes, callOptionRes] =
+                    await Promise.all([
+                        getStoreById(id),
+                        getToppings(),
+                        getCallOptions()
+                    ])
+
+                console.log("店舗情報取得データ：", JSON.stringify(storeRes, null, 2))
+
+                // 状態管理の更新
+                setStoreData(storeRes)
+                setToppings(toppingRes)
+                setCallOptions(callOptionRes)
+
+                // トッピングデータがある場合は整形する
+                // 例：{ "ニンニク": ["抜き", "少なめ", "マシ"], "野菜": ["ちょいマシ", "マシ", "マシマシ"] }
+                // （麺の硬さ）["硬め", "カタカタ"]
+                // （麺量）["半分", "少なめ"]
+                if (storeRes.store_topping_calls && storeRes.store_topping_calls.length > 0) {
+                    formatToppingOptions(storeRes, toppingRes, callOptionRes)
                 }
-                setStoreData(toppingMockRamenData)
+
             } catch (err) {
                 console.error("店舗情報取得処理エラー：", err)
                 setError(err instanceof Error ? err.message : "店舗情報取得でエラーが発生しました。")
@@ -70,57 +78,68 @@ export default function StoreDetails() {
                 setLoading(false)
             }
         }
-        fetchStoreData()
+        fetchStoreToppingCallData()
     }, [id])
 
-    // トッピングオプションの全てを取得する関数
-    const getAllToppingOptions = () => {
-        if (!storeData) return {}
+    /**
+     * APIから取得したデータを表示用に整形する
+     */
+    const formatToppingOptions = (
+        store: ApiStoreData,
+        toppings: ToppingData[],
+        callOptions: CallOptionData[]
+    ) => {
+        // 店舗別トッピングコールがない場合は、整形無しでリターン
+        if (!store.store_topping_calls) return
 
-        const toppingMap = {
-            "topping_garlic": "ニンニク",
-            "topping_vegetable": "野菜",
-            "topping_oil": "アブラ",
-            "topping_soy_sauce": "カラメ"
-        } as const
+        // トッピング用のオブジェクト初期化
+        const formatted: FormattedOptions = {}
+        const noodleFitness: string[] = []
+        const noodleAmount: string[] = []
 
-        const result: Record<string, string[]> = {}
+        // 各トッピングコールの配列に格納する
+        store.store_topping_calls.forEach(call => {
+            // トッピングとコールオプションを取得
+            const topping = toppings.find(t => t.id === call.topping_id)
+            const callOption = callOptions.find(t => t.id === call.call_option_id)
 
-        Object.entries(toppingMap).forEach(([key, label]) => {
-            const array = storeData[key as keyof StoreDetail] as string[] | undefined
-            if (array && array.length > 0) {
-                result[label] = array
+            console.log("トッピング配列情報：", topping)
+            console.log("コールオプション配列情報：", callOption)
+
+            if (!topping || !callOption) return
+
+            // 麺の硬さ
+            if (topping.id === 5) {
+                noodleFitness.push(callOption.call_option_name)
+                // 麺量
+            } else if (topping.id === 6) {
+                noodleAmount.push(callOption.call_option_name)
+            } else {
+                if (!formatted[topping.topping_name]) {
+                    formatted[topping.topping_name] = []
+                }
+                formatted[topping.topping_name].push(callOption.call_option_name)
             }
+            console.log("麺の硬さ配列：", noodleFitness)
+            console.log("麺量配列：", noodleAmount)
+            console.log("通常トッピング配列：", formatted)
         })
 
-        return result
+        // 状態を更新
+        setFormattedOptions(formatted)
+        setNoodleFitnessOptions(noodleFitness)
+        setNoodleAmountOptions(noodleAmount)
     }
 
     // ローディング表示
     if (loading) {
-        return (
-            <View style={styles.errorContainer}>
-                <ActivityIndicator animating={true} size="large" />
-                <Text style={styles.loadingText}>Loading.....</Text>
-            </View>
-        )
+        return <LoadingErrorContainer loading={loading} error={null} />
     }
 
     // エラーの表示
     if (error || !storeData) {
-        return (
-            <View style={styles.errorContainer}>
-                <MaterialCommunityIcons name="alert-circle" size={48} color={theme.colors.error} />
-                <Text style={styles.errorText}>店舗情報を取得出来ません！</Text>
-                <Button mode='contained' onPress={() => router.back()}>
-                    戻る
-                </Button>
-            </View>
-        )
+        return <LoadingErrorContainer loading={false} error={error} />
     }
-
-    // トッピングオプションを取得
-    const toppingOptions = getAllToppingOptions()
 
     return (
         <SafeAreaView
@@ -128,10 +147,7 @@ export default function StoreDetails() {
             edges={[]}
         >
             <StatusBar style={theme.dark ? "light" : "dark"} />
-            <Appbar.Header>
-                <Appbar.BackAction onPress={() => router.back()} />
-                <Appbar.Content title="店舗情報詳細" />
-            </Appbar.Header>
+            <HeaderAppBar showBackButton={true} title='店舗情報詳細' />
             <ScrollView style={styles.container}>
                 <Surface style={styles.surface} elevation={2}>
                     {/* タイトル */}
@@ -219,10 +235,10 @@ export default function StoreDetails() {
                         </Text>
                         <Divider style={styles.divider} />
                         {/* ニンニク、野菜、アブラ、カラメのオプション表示 */}
-                        {Object.entries(toppingOptions).map(([category, options]: [string, string[]]) => (
-                            <View key={category} style={styles.toppingCategory}>
+                        {Object.entries(formattedOptions).map(([toppingName, options]: [string, string[]]) => (
+                            <View key={toppingName} style={styles.toppingCategory}>
                                 <Text style={styles.toppingLabel}>
-                                    {category}：
+                                    {toppingName}：
                                 </Text>
                                 <View style={styles.chipContainer}>
                                     {options.map((option: string, index: number) => (
@@ -240,20 +256,40 @@ export default function StoreDetails() {
                     </View>
 
                     {/* 麺の硬さオプション表示 */}
-                    <View style={styles.toppingCategory}>
-                        <Text style={styles.toppingLabel}>麺の硬さ：</Text>
-                        <View style={styles.chipContainer}>
-                            {storeData.noodle_fitness.map((option, index) => (
-                                <Chip
-                                    key={index}
-                                    style={styles.chip}
-                                    textStyle={styles.chipText}
-                                    mode='outlined'>
-                                    {option}
-                                </Chip>
-                            ))}
+                    {noodleFitnessOptions.length > 0 && (
+                        <View style={styles.toppingCategory}>
+                            <Text style={styles.toppingLabel}>麺の硬さ：</Text>
+                            <View style={styles.chipContainer}>
+                                {noodleFitnessOptions.map((option, index) => (
+                                    <Chip
+                                        key={index}
+                                        style={styles.chip}
+                                        textStyle={styles.chipText}
+                                        mode='outlined'>
+                                        {option}
+                                    </Chip>
+                                ))}
+                            </View>
                         </View>
-                    </View>
+                    )}
+
+                    {/* 麺量オプション表示 */}
+                    {noodleAmountOptions.length > 0 && (
+                        <View style={styles.toppingCategory}>
+                            <Text style={styles.toppingLabel}>麺量：</Text>
+                            <View style={styles.chipContainer}>
+                                {noodleAmountOptions.map((option, index) => (
+                                    <Chip
+                                        key={index}
+                                        style={styles.chip}
+                                        textStyle={styles.chipText}
+                                        mode='outlined'>
+                                        {option}
+                                    </Chip>
+                                ))}
+                            </View>
+                        </View>
+                    )}
 
                     {/* トッピングコール補足情報表示 */}
                     <View style={styles.section}>
@@ -397,7 +433,7 @@ const styles = StyleSheet.create({
         fontWeight: "bold"
     },
     divider: {
-        marginBottom: 8
+        marginBottom: 16
     },
     infoRow: {
         flexDirection: "row",
