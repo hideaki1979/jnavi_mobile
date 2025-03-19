@@ -1,21 +1,23 @@
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useState } from 'react'
 import { Alert, Dimensions, Platform, StyleSheet, View } from 'react-native'
-import MapView, { Callout, Marker, Region } from 'react-native-maps'
+import MapView, { Marker, Region } from 'react-native-maps'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { Text, useTheme } from 'react-native-paper'
+import { useTheme } from 'react-native-paper'
 import { getMapAll } from '@/src/api/storeApi'
-import { MapData } from '@/src/types/storeApiResponse'
-import { router } from 'expo-router'
+import { MapData, MapStore } from '@/src/types/storeApiResponse'
 import * as Location from 'expo-location'
 import BottomAppBar from '@/src/components/navigation/BottomAppBar'
 import LoadingErrorContainer from '@/src/components/feedback/LoadingErrorContainer'
+import StoreInfoBottomSheet from '@/src/components/map/StoreInfoBottomSheet'
 
 export default function Map() {
     const theme = useTheme()
     const [markers, setMarkers] = useState<MapData[]>([])
     const [initialRegion, setInitialRegion] = useState<Region | null>(null)
     const [loading, setLoading] = useState<boolean>(true)
+    const [selectedStore, setSelectedStore] = useState<MapStore | null>(null)
+    const [isBottomSheetVisible, setIsBottomSheetVisible] = useState<boolean>(false)
 
     useEffect(() => {
         // 現在位置情報を取得する。
@@ -93,9 +95,9 @@ export default function Map() {
         })
     }
 
-    // マーカーのCalloutタップ時に詳細画面へ遷移する。
-    const handleCalloutPress = (storeId: number) => {
-        router.push(`store/detail?id=${storeId}`)
+    const handlerMarkerPress = (store: MapStore) => {
+        setSelectedStore(store)
+        setIsBottomSheetVisible(true)
     }
 
     if (loading) {
@@ -112,18 +114,6 @@ export default function Map() {
                     region={initialRegion || undefined}
                     showsUserLocation={true}
                 >
-                    {/* 現在地のマーカー表示 */}
-                    {/* {initialRegion && (
-                        <Marker
-                            coordinate={{
-                                latitude: initialRegion.latitude,
-                                longitude: initialRegion.longitude
-                            }}
-                            pinColor='blue'
-                            title='現在地'
-                        />
-                    )} */}
-
                     {markers.map((marker) => (
                         <Marker
                             key={marker.id}
@@ -132,24 +122,20 @@ export default function Map() {
                                 longitude: marker.longitude
                             }}
                             pinColor='orange'
+                            onPress={(e) => {
+                                e.stopPropagation()
+                                handlerMarkerPress(marker.store)
+                            }}
+                            tracksViewChanges={false}
                         >
-                            <Callout
-                                onPress={() => handleCalloutPress(Number(marker.store.id))}
-                                tooltip={false}
-                            >
-                                <View style={styles.calloutContainer}>
-                                    <Text style={[styles.calloutTitle, { color: theme.colors.primary }]}>
-                                        {marker.store.branch_name ? `店舗名： ${marker.store.store_name} ${marker.store.branch_name}` : `店舗名： ${marker.store.store_name}`}
-                                    </Text>
-                                    <Text style={styles.calloutDescription}>{marker.store.address}</Text>
-                                    <Text style={styles.calloutAction}>
-                                        詳細画面へ
-                                    </Text>
-                                </View>
-                            </Callout>
                         </Marker>
                     ))}
                 </MapView>
+                <StoreInfoBottomSheet
+                    visible={isBottomSheetVisible}
+                    store={selectedStore}
+                    onClose={() => setIsBottomSheetVisible(false)}
+                />
             </View>
 
             {/* フッター (Appbar) */}

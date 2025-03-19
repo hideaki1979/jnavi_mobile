@@ -79,6 +79,7 @@ export interface MapStore {
     store_name: string;
     branch_name: string | null;
     address: string;
+    images?: string[] | null
 }
 
 // マップ＋店舗情報（MAP画面用）
