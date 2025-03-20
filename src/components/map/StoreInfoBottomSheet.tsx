@@ -1,4 +1,4 @@
-import { Dimensions, View, Image, StyleSheet, Platform } from "react-native"
+import { Dimensions, View, Image, StyleSheet } from "react-native"
 import { Button, Card, IconButton, Modal, Paragraph, Portal, Title, useTheme } from "react-native-paper"
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -59,14 +59,17 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
         setModalVisible(true)
     }, [])
 
+    // BottomSheetの状態変化を検知する処理（スワイプ操作など）
     const handleSheetChanges = useCallback((index: number) => {
+        // スワイプで閉じられた場合も親コンポーネントに通知
         if (index === -1) {
             onClose()
         }
     }, [onClose])
 
+    // 閉じるボタンが押されたときの処理
     const handleCloseSheet = useCallback(() => {
-        // BottomSheetを閉じる
+        // BottomSheetを直接閉じる
         bottomSheetRef.current?.close()
         // 親コンポーネントのonCloseも呼び出す
         onClose()
@@ -90,7 +93,7 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
 
     if (!store) return null
 
-    //  表示する画像の配列を決定
+    // 表示する画像の配列を決定
     // APIから画像があればそれを表示し、なければローカル画像を表示
     const displayImages = (store.images && store.images.length > 0) ? store.images : localImages
 
@@ -105,6 +108,7 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
                 handleIndicatorStyle={{ backgroundColor: theme.colors.outline }}
                 backgroundStyle={{ backgroundColor: theme.colors.background }}
                 style={styles.sheetContainer}
+                animateOnMount={true}
             >
                 <BottomSheetView style={styles.contentContainer}>
                     <Card style={styles.card}>
@@ -169,6 +173,7 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
                         <Image
                             source={{ uri: selectedImage || '' }}
                             style={styles.modalImage}
+                            resizeMode="contain"
                         />
                         <IconButton
                             icon="close"
@@ -177,7 +182,6 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
                             style={styles.closeIcon}
                             iconColor={theme.colors.onSurfaceVariant}
                         />
-
                     </View>
                 </Modal>
             </Portal>
@@ -202,11 +206,13 @@ const styles = StyleSheet.create({
     storeName: {
         fontSize: 14,
         fontWeight: "bold",
-        marginBottom: 8
+        marginBottom: 8,
+        textDecorationLine: "underline"
     },
     storeAddress: {
         fontSize: 12,
-        marginBottom: 16
+        marginBottom: 16,
+        textDecorationLine: "underline"
     },
     imageContainer: {
         marginBottom: 16,
@@ -223,7 +229,7 @@ const styles = StyleSheet.create({
         marginRight: 8
     },
     closeButton: {
-        marginTop: 16,
+        marginVertical: 16,
         marginHorizontal: 8,
         borderRadius: 8
     },
@@ -232,7 +238,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "rgba(0, 0, 0, 0.5)"
+        backgroundColor: "white"
     },
     modalContent: {
         width: "100%",
@@ -246,7 +252,6 @@ const styles = StyleSheet.create({
     modalImage: {
         width: width * 0.9,
         height: height * 0.7,
-        resizeMode: "contain",
         borderRadius: 8,
         backgroundColor: "white"
     },
@@ -256,23 +261,5 @@ const styles = StyleSheet.create({
         right: 16,
         backgroundColor: "rgba(255, 255, 255, 0.7)",
         borderRadius: 20
-    },
-    // 追加するイメージラッパー
-    imageWrapper: {
-        backgroundColor: "white", // 背景色を設定
-        borderRadius: 8,
-        overflow: "hidden",
-        // シャドウプロパティ
-        ...Platform.select({
-            ios: {
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.2,
-                shadowRadius: 1.5
-            },
-            android: {
-                elevation: 2 // Android用の影
-            }
-        })
     }
 })

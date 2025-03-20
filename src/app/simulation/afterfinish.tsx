@@ -1,16 +1,17 @@
 import { router } from "expo-router"
 import { useState } from "react"
 import { ScrollView, StyleSheet, View } from "react-native"
-import { Button, Card, Checkbox, Text } from "react-native-paper"
+import { Button, Card, Checkbox, Text, useTheme } from "react-native-paper"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { Asset } from 'expo-asset'
 import finishMealImageSource from '../../../public/images/jiro_counter2_manga_final.jpg'
 import HeaderAppBar from "@/src/components/navigation/HeaderAppBar"
 import BottomAppBar from "@/src/components/navigation/BottomAppBar"
+import { StatusBar } from "expo-status-bar"
 
 
 export default function AfterFinish() {
-
+    const theme = useTheme()
     const finishMealImage = Asset.fromModule(finishMealImageSource)
 
     // チェックボックスの状態管理
@@ -47,6 +48,7 @@ export default function AfterFinish() {
 
     return (
         <SafeAreaView style={styles.container} edges={[]}>
+            <StatusBar style={theme.dark ? "light" : "dark"} />
             {/* ヘッダー */}
             <HeaderAppBar showBackButton={true} title="コールシミュレーション" />
 

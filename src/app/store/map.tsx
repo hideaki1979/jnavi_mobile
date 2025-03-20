@@ -59,7 +59,6 @@ export default function Map() {
                     setDefaultLocation()
                 }
 
-
             } catch (error) {
                 console.error("現在地情報取得に失敗しました", error)
                 // エラー時の初期表示位置
@@ -80,7 +79,6 @@ export default function Map() {
                 console.error('マップデータの取得に失敗しました:', error)
             }
         }
-
         getLocation()
         fetchMapData()
     }, [])

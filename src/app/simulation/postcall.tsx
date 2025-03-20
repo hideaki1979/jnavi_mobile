@@ -1,64 +1,119 @@
 import { router } from "expo-router"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { ScrollView, StyleSheet, View } from "react-native"
-import { Button, Card, RadioButton, Text } from "react-native-paper"
+import { Button, Card, RadioButton, Text, useTheme } from "react-native-paper"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { Asset } from 'expo-asset'
 import postCallImageSource from '../../../public/images/jiro_counter2_manga_final.jpg'
 import HeaderAppBar from "@/src/components/navigation/HeaderAppBar"
 import BottomAppBar from "@/src/components/navigation/BottomAppBar"
+import { getStoreById } from "@/src/api/storeApi"
+import { ApiStoreData } from "@/src/types/storeApiResponse"
+import { getCallOptions, getToppings } from "@/src/api/toppingApi"
+import { CallOptionData, ToppingData } from "@/src/types/topping"
+import LoadingErrorContainer from "@/src/components/feedback/LoadingErrorContainer"
+import { StatusBar } from "expo-status-bar"
 
+interface FormattedOptions {
+    [toppingName: string]: string[]
+}
 
 export default function PostCall() {
-
+    const theme = useTheme()
     const postCallImage = Asset.fromModule(postCallImageSource)
 
     // ラジオボタンの選択状態を管理
-    const [vegetablesVolume, setVegetablesVolume] = useState<string>('')
-    const [garlicVolume, setGarlicVolume] = useState<string>('')
-    const [backFatVolume, setBackFatVolume] = useState<string>('')
-    const [soySauceVolume, setSoySauceVolume] = useState<string>('')
+    const [toppingSelections, setToppingSelections] = useState<{ [key: string]: string }>({})
+    const [loading, setLoading] = useState<boolean>(true)
+    const [, setStoreData] = useState<ApiStoreData | null>(null)
+    const [formattedOptions, setFormattedOptions] = useState<FormattedOptions>({})
+
+    // APIからコールトッピング情報を取得
+    useEffect(() => {
+        const fetchStoreCallToppingData = async () => {
+            try {
+                // 店舗情報・トッピングコール情報を並列で取得する。(IDは暫定で固定)
+                const [storeRes, toppingRes, callOptionRes] = await Promise.all([
+                    getStoreById('13'),
+                    getToppings(),
+                    getCallOptions()
+                ])
+                setStoreData(storeRes)
+
+                // トッピングデータがある場合は整形する
+                // 例：{ "ニンニク": ["抜き", "少なめ", "マシ"], "野菜": ["ちょいマシ", "マシ", "マシマシ"] }
+                if (storeRes.store_topping_calls && storeRes.store_topping_calls.length > 0) {
+                    formatToppingOptions(storeRes, toppingRes, callOptionRes)
+                }
+            } catch (error) {
+                console.log("店舗情報取得エラー：", error)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchStoreCallToppingData()
+    }, [])
+
+    /**
+     * 店舗情報、トッピング情報、コールオプション情報から、トッピングのコール情報を整形する
+     * 
+     * @param store 店舗情報
+     * @param toppings トッピング情報
+     * @param callOptions コールオプション情報
+     * 
+     * @returns トッピングのコール情報
+     */
+    const formatToppingOptions = (
+        store: ApiStoreData,
+        toppings: ToppingData[],
+        callOptions: CallOptionData[]
+    ) => {
+        // 店舗別トッピングコールがない場合は、整形無しでリターン
+        if (!store.store_topping_calls) return
+
+        // トッピング用のオブジェクト初期化
+        const formatted: FormattedOptions = {}
+
+        // 各種トッピングのコール情報を格納する
+        store.store_topping_calls.map((topping_call) => {
+            // トッピングとコールオプションを取得
+            const topping = toppings.find(t => t.id === topping_call.topping_id)
+            const callOption = callOptions.find(co => co.id === topping_call.call_option_id)
+
+            console.log("トッピング配列情報：", topping)
+            console.log("コールオプション配列情報：", callOption)
+
+            if (!topping || !callOption) return
+
+            // トッピングコールオプションをオブジェクト配列形式に整形する。
+            // { "ニンニク": ["マシ", "マシマシ"], "野菜": ["抜き", "少し", "ちょいマシ"] }
+            if (!formatted[topping.topping_name]) {
+                formatted[topping.topping_name] = []
+            }
+            formatted[topping.topping_name].push(callOption.call_option_name)
+            console.log("トッピングコール配列：", formatted)
+        })
+        setFormattedOptions(formatted)
+    }
 
     const handleCallOption = () => {
         let callText = ""
 
-        // ニンニクが選択されている場合
-        if (garlicVolume) {
-            if (garlicVolume === "ニンニク") {
-                callText += `${garlicVolume}`
-            } else {
-                callText += `ニンニク${garlicVolume}`
+        // 各種トッピングについて処理
+        Object.entries(toppingSelections).forEach(([toppingName, selection]) => {
+            if (selection) {
+                // 既に他のトッピングがある場合は改行を追加
+                if (callText) callText += "\n"
+
+                // 「ちょいマシ」の場合は名前のみ表示（例：「ニンニク」）
+                if (selection === "ちょいマシ") {
+                    callText += toppingName
+                } else {
+                    // 上記以外は「トッピング名＋選択肢」を表示（例：「ニンニクマシ」）
+                    callText += toppingName + selection
+                }
             }
-        }
-
-        // 野菜が選択されている場合
-        if (vegetablesVolume) {
-            if (callText) {
-                callText += `\n`
-                if (vegetablesVolume !== "ヤサイ") callText += `ヤサイ`
-            }
-            callText += `${vegetablesVolume}`
-        }
-
-        // アブラが選択されている場合
-        if (backFatVolume) {
-            if (callText) {
-                callText += `\n`
-                if (backFatVolume !== "アブラ") callText += `アブラ`
-            }
-            callText += `${backFatVolume}`
-        }
-
-        // カラメが選択されている場合
-        if (soySauceVolume) {
-            if (callText) {
-                callText += `\n`
-                if (soySauceVolume !== "カラメ") callText += `カラメ`
-            }
-            callText += `${soySauceVolume}`
-        }
-
-
+        })
         // トッピングコール結果画面遷移
         router.push({
             pathname: `simulation/postcall_result`,
@@ -66,8 +121,14 @@ export default function PostCall() {
         })
     }
 
+    // ローディング表示
+    if (loading) {
+        return <LoadingErrorContainer loading={loading} error={null} />
+    }
+
     return (
         <SafeAreaView style={styles.container} edges={[]}>
+            <StatusBar style={theme.dark ? "light" : "dark"} />
             <HeaderAppBar showBackButton={true} title="コールシミュレーション" />
 
             <ScrollView
@@ -86,73 +147,29 @@ export default function PostCall() {
                     オプションを選択しましょう。
                 </Text>
 
-                {/* ニンニク */}
-                <View style={styles.radioGroup}>
-                    <Text style={styles.radioLabel}>ニンニク</Text>
-                    <RadioButton.Group
-                        onValueChange={(value) => setGarlicVolume(value)}
-                        value={garlicVolume}
-                    >
-                        <View style={styles.radioItemGrid}>
-                            <RadioButton.Item label="抜き" value="抜き" labelVariant="labelLarge" />
-                            <RadioButton.Item label="少なめ" value="少なめ" labelVariant="labelLarge" />
-                            <RadioButton.Item label="ニンニク" value="ニンニク" labelVariant="labelLarge" />
-                            <RadioButton.Item label="マシ" value="マシ" labelVariant="labelLarge" />
-                            <RadioButton.Item label="マシマシ" value="マシマシ" labelVariant="labelLarge" />
-                        </View>
-                    </RadioButton.Group>
-                </View>
-
-                {/* 野菜 */}
-                <View style={styles.radioGroup}>
-                    <Text style={styles.radioLabel}>野菜</Text>
-                    <RadioButton.Group
-                        onValueChange={(value) => setVegetablesVolume(value)}
-                        value={vegetablesVolume}
-                    >
-                        <View style={styles.radioItemGrid}>
-                            <RadioButton.Item label="抜き" value="抜き" labelVariant="labelLarge" />
-                            <RadioButton.Item label="少なめ" value="少なめ" labelVariant="labelLarge" />
-                            <RadioButton.Item label="ヤサイ" value="ヤサイ" labelVariant="labelLarge" />
-                            <RadioButton.Item label="マシ" value="マシ" labelVariant="labelLarge" />
-                            <RadioButton.Item label="マシマシ" value="マシマシ" labelVariant="labelLarge" />
-                        </View>
-                    </RadioButton.Group>
-                </View>
-
-                {/* アブラ */}
-                <View style={styles.radioGroup}>
-                    <Text style={styles.radioLabel}>アブラ</Text>
-                    <RadioButton.Group
-                        onValueChange={(value) => setBackFatVolume(value)}
-                        value={backFatVolume}
-                    >
-                        <View style={styles.radioItemGrid}>
-                            <RadioButton.Item label="抜き" value="抜き" labelVariant="labelLarge" />
-                            <RadioButton.Item label="少なめ" value="少なめ" labelVariant="labelLarge" />
-                            <RadioButton.Item label="アブラ" value="アブラ" labelVariant="labelLarge" />
-                            <RadioButton.Item label="マシ" value="マシ" labelVariant="labelLarge" />
-                            <RadioButton.Item label="マシマシ" value="マシマシ" labelVariant="labelLarge" />
-                        </View>
-                    </RadioButton.Group>
-                </View>
-
-                {/* カラメ */}
-                <View style={styles.radioGroup}>
-                    <Text style={styles.radioLabel}>カラメ</Text>
-                    <RadioButton.Group
-                        onValueChange={(value) => setSoySauceVolume(value)}
-                        value={soySauceVolume}
-                    >
-                        <View style={styles.radioItemGrid}>
-                            <RadioButton.Item label="抜き" value="抜き" labelVariant="labelLarge" />
-                            <RadioButton.Item label="少なめ" value="少なめ" labelVariant="labelLarge" />
-                            <RadioButton.Item label="カラメ" value="カラメ" labelVariant="labelLarge" />
-                            <RadioButton.Item label="マシ" value="マシ" labelVariant="labelLarge" />
-                            <RadioButton.Item label="マシマシ" value="マシマシ" labelVariant="labelLarge" />
-                        </View>
-                    </RadioButton.Group>
-                </View>
+                {/* トッピングコールオプション情報 */}
+                {Object.entries(formattedOptions).map(([toppingName, options]: [string, string[]]) => (
+                    <View key={toppingName} style={styles.radioGroup}>
+                        <Text style={styles.radioLabel}>
+                            {toppingName}
+                        </Text>
+                        <RadioButton.Group
+                            onValueChange={(value) => {
+                                setToppingSelections(prev => ({
+                                    ...prev,
+                                    [toppingName]: value
+                                }))
+                            }}
+                            value={toppingSelections[toppingName] || ''}
+                        >
+                            <View style={styles.radioItemGrid}>
+                                {options.map((option: string, index: number) => (
+                                    <RadioButton.Item key={index} label={option} value={option} labelVariant="labelLarge" />
+                                ))}
+                            </View>
+                        </RadioButton.Group>
+                    </View>
+                ))}
 
                 {/* コールボタン */}
                 <View style={styles.buttonContainer}>
@@ -173,7 +190,7 @@ export default function PostCall() {
 
             {/* フッター */}
             <BottomAppBar showRoutes={["map", "create"]} />
-        </SafeAreaView>
+        </SafeAreaView >
     )
 }
 

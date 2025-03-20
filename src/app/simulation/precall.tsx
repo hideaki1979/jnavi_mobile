@@ -1,17 +1,19 @@
 import { router } from "expo-router"
 import { useState } from "react"
 import { ScrollView, StyleSheet, View } from "react-native"
-import { Button, Card, RadioButton, Text } from "react-native-paper"
+import { Button, Card, RadioButton, Text, useTheme } from "react-native-paper"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { Asset } from 'expo-asset'
 import preCallImageSource from '../../../public/images/jiro_counter2_manga_final.jpg'
 import HeaderAppBar from "@/src/components/navigation/HeaderAppBar"
 import BottomAppBar from "@/src/components/navigation/BottomAppBar"
+import { StatusBar } from "expo-status-bar"
 
 
 export default function PreCall() {
 
     const preCallImage = Asset.fromModule(preCallImageSource)
+    const theme = useTheme()
 
     // ラジオボタンの選択状態を管理
     const [noodleHardness, setNoodleHardness] = useState<string>('')
@@ -51,6 +53,7 @@ export default function PreCall() {
 
     return (
         <SafeAreaView style={styles.container} edges={[]}>
+            <StatusBar style={theme.dark ? "light" : "dark"} />
             <HeaderAppBar showBackButton={true} title="コールシミュレーション" />
             <ScrollView
                 style={styles.scrollContainer}

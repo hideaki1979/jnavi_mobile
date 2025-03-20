@@ -43,10 +43,16 @@ export default function StoreDetails() {
 
     // APIから店舗情報を取得
     useEffect(() => {
+        /**
+         * 店舗情報、トッピング情報、コールオプション情報を並列で取得し状態管理を更新
+         * 
+         * APIから店舗情報、トッピング情報、コールオプション情報を取得し状態管理を更新
+         * トッピング情報がある場合は、店舗情報に含まれるコールトッピング情報を整形して状態管理に反映
+         * 
+         * @throws {Error} APIから取得したデータの整形中にエラーが発生した場合
+         */
         const fetchStoreToppingCallData = async () => {
             try {
-                setLoading(true)
-
                 // 店舗情報とコールトッピング情報を並列で取得
                 const [storeRes, toppingRes, callOptionRes] =
                     await Promise.all([

@@ -1,6 +1,7 @@
 import BottomAppBar from "@/src/components/navigation/BottomAppBar"
 import HeaderAppBar from "@/src/components/navigation/HeaderAppBar"
 import { router, useLocalSearchParams } from "expo-router"
+import { StatusBar } from "expo-status-bar"
 import { StyleSheet, View } from "react-native"
 import { Button, Text, useTheme } from "react-native-paper"
 import { SafeAreaView } from "react-native-safe-area-context"
@@ -19,6 +20,7 @@ export default function Answer() {
 
     return (
         <SafeAreaView edges={[]} style={styles.container}>
+            <StatusBar style={theme.dark ? "light" : "dark"} />
             {/* ヘッダー */}
             <HeaderAppBar showBackButton={true} title="コールシミュレーション" />
 

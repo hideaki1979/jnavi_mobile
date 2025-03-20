@@ -1,7 +1,9 @@
+import BottomAppBar from "@/src/components/navigation/BottomAppBar"
 import HeaderAppBar from "@/src/components/navigation/HeaderAppBar"
 import { router, useLocalSearchParams } from "expo-router"
+import { StatusBar } from "expo-status-bar"
 import { StyleSheet, View } from "react-native"
-import { Appbar, Button, Text } from "react-native-paper"
+import { Button, Text, useTheme } from "react-native-paper"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 type callScreenParams = {
@@ -10,6 +12,7 @@ type callScreenParams = {
 
 export default function PostCallResult() {
     const { callText } = useLocalSearchParams<callScreenParams>()
+    const theme = useTheme()
 
     const handleNext = () => {
         router.push(`simulation/afterfinish`)
@@ -17,6 +20,7 @@ export default function PostCallResult() {
 
     return (
         <SafeAreaView edges={[]} style={styles.container}>
+            <StatusBar style={theme.dark ? "light" : "dark"} />
             {/* ヘッダー */}
             <HeaderAppBar
                 showBackButton={true}
@@ -41,16 +45,7 @@ export default function PostCallResult() {
                 </Button>
             </View>
             {/* フッター */}
-            <Appbar style={styles.bottomBar}>
-                <Appbar.Action icon="map" onPress={() => { router.push(`store/map`) }} />
-                <Appbar.Action icon="home" onPress={() => { }} />
-                <Appbar.Action icon="plus-box"
-                    onPress={() => { router.push(`store/create`) }} />
-                <Appbar.Action
-                    icon="tune-vertical"
-                    onPress={() => { router.push(`simulation/ticket_machine`) }} />
-                <Appbar.Action icon="account" onPress={() => { }} />
-            </Appbar>
+            <BottomAppBar showRoutes={["map", "create"]} />
         </SafeAreaView>
     )
 }
