@@ -2,7 +2,8 @@ import {
     View, ScrollView, Platform, KeyboardAvoidingView, StyleSheet
 } from "react-native"
 import {
-    Text, TextInput, Button, Checkbox, useTheme, Switch, Snackbar
+    Text, TextInput, Button, Checkbox, useTheme, Switch, Snackbar,
+    List
 } from "react-native-paper"
 import { useForm, Controller } from "react-hook-form"
 import { router } from "expo-router"
@@ -16,6 +17,7 @@ import HeaderAppBar from "@/src/components/navigation/HeaderAppBar"
 import { CallOptionData, ToppingData } from "@/src/types/topping"
 import { getCallOptions, getToppings } from "@/src/api/toppingApi"
 import LoadingErrorContainer from "@/src/components/feedback/LoadingErrorContainer"
+import { FontAwesome6 } from "@expo/vector-icons"
 
 /**
  * 店舗情報登録画面コンポーネント
@@ -26,7 +28,7 @@ import LoadingErrorContainer from "@/src/components/feedback/LoadingErrorContain
  */
 export default function StoreCreate() {
     // フォームの状態管理 (React Hook Form)
-    const { control, handleSubmit, formState: { isSubmitting, errors } } = useForm<StoreData>({
+    const { control, handleSubmit, formState: { isSubmitting } } = useForm<StoreData>({
         defaultValues: {
             // デフォルト値を設定
             store_name: "",
@@ -45,10 +47,6 @@ export default function StoreCreate() {
     const [snackbarVisible, setSnackbarVisible] = useState(false)
     const [snackbarMessage, setSnackbarMessage] = useState("")
     const [snackbarError, setSnackbarError] = useState(false)
-    const [redirectToDetail, setRedirectToDetail] = useState(false)
-
-    // 暫定対応で登録後に詳細画面遷移させるため店舗IDを状態管理
-    const [storeId, setStoreId] = useState<number>(0)
 
     // トッピングとコールオプションのデータ管理
     const [toppings, setToppings] = useState<ToppingData[]>([])
@@ -56,15 +54,18 @@ export default function StoreCreate() {
     const [isLoading, setIsLoading] = useState(true)
     const [loadError, setLoadError] = useState<string | null>(null)
 
-    // 選択したコールオプションを状態管理
-    const [selectedOptions, setSelectedOptions] = useState<Record<number, number[]>>([])
+    // 選択したコールオプションを状態管理（事前用・着丼前用）
+    const [selectedPreCallOptions, setSelectedPreCallOptions] = useState<Record<number, number[]>>([])
+    const [selectedPostCallOptions, setSelectedPostCallOptions] = useState<Record<number, number[]>>([])
+
+    // アコーディオンの展開状態管理
+    const [preCallExpanded, setPreCallExpanded] = useState<boolean>(true)
+    const [postCallExpanded, setPostCallExpanded] = useState<boolean>(true)
 
     // 初期ロード時にトッピング情報・コールオプション情報を取得
     useEffect(() => {
         const fetchToppingCallOptions = async () => {
             try {
-                setIsLoading(true)
-
                 // // トッピング情報とコールオプション情報を並列で取得
                 const [toppingResponse, callOptionResponse] =
                     await Promise.all([
@@ -73,15 +74,13 @@ export default function StoreCreate() {
                 setToppings(toppingResponse)
                 setCallOptions(callOptionResponse)
 
-                // console.log('トッピングレスポンス：', toppingResponse)
-                // console.log('コールオプションレスポンス：', callOptionResponse)
-
-                // 選択状態の初期化
+                // 選択状態の初期化（事前・着丼前）
                 const initSelectedOptions: Record<number, number[]> = {}
                 toppingResponse.forEach(topping => {
                     initSelectedOptions[topping.id] = []
                 })
-                setSelectedOptions(initSelectedOptions)
+                setSelectedPreCallOptions({ ...initSelectedOptions })
+                setSelectedPostCallOptions({ ...initSelectedOptions })
 
             } catch (error) {
                 console.error('トッピング・コールオプション情報取得エラー：', error)
@@ -99,13 +98,6 @@ export default function StoreCreate() {
      */
     const onSubmit = async (data: StoreData) => {
         try {
-            if (Object.keys(errors).length > 0) {
-                setSnackbarMessage("必須項目を入力してください")
-                setSnackbarError(true)
-                setSnackbarVisible(true)
-                return
-            }
-
             // トッピング情報を生成
             const toppingCalls = generateToppingCalls()
 
@@ -120,16 +112,21 @@ export default function StoreCreate() {
 
             // APIを使用して店舗情報を登録
             const response: StoreApiResponse = await createStore(submitData)
-            console.log("店舗登録レスポンス情報：", JSON.stringify(response, null, 2))
-            // console.log("店舗ID：", response.data.store.id)
-            if (response.data.store.id) {
-                setStoreId(Number(response.data.store.id))
-            }
+            // console.log("店舗登録レスポンス情報：", JSON.stringify(response, null, 2))
             // 成功メッセージを表示
             setSnackbarMessage("店舗情報を登録しました")
             setSnackbarError(false)
             setSnackbarVisible(true)
-            setRedirectToDetail(true)
+
+            // タイマーで遅延させた後に詳細画面へ遷移
+            setTimeout(() => {
+                router.push({
+                    pathname: 'store/detail',
+                    params: { id: String(response.data.store.id) }
+                })
+            }, 3000)
+
+
         } catch (error) {
             // エラー処理
             setSnackbarMessage(error instanceof Error ? error.message : "店舗情報登録処理でエラーが発生しました")
@@ -140,15 +137,7 @@ export default function StoreCreate() {
 
     // SnackBar表示後に画面遷移
     const handleSnackbarDismiss = () => {
-        console.log("詳細画面リダイレクト：", redirectToDetail)
         setSnackbarVisible(false)
-        if (redirectToDetail) {
-            router.push({
-                pathname: 'store/detail',
-                params: { id: storeId }
-            })
-            setRedirectToDetail(false)
-        }
     }
 
     /**
@@ -156,9 +145,15 @@ export default function StoreCreate() {
      * @param toppingId トッピングID
      * @param optionId コールオプションID
      * @param isChecked チェック状態
+     * @param callType コールタイプ（pre_call または post_call）
      */
-    const handleCheckboxChange = (toppingId: number, optionId: number, isChecked: boolean) => {
-        setSelectedOptions(prev => {
+    const handleCheckboxChange = (toppingId: number, optionId: number, isChecked: boolean, callType: string) => {
+        // コールタイプに従ってセット関数を確定する
+        const setSelectedOptions = callType === 'pre_call'
+            ? setSelectedPreCallOptions
+            : setSelectedPostCallOptions
+
+        setSelectedOptions((prev) => {
             const currentOptions = [...(prev[toppingId] || [])]
 
             console.log("チェックボックス状態：", currentOptions)
@@ -214,8 +209,22 @@ export default function StoreCreate() {
     const generateToppingCalls = (): ToppingCall[] => {
         const result: ToppingCall[] = []
 
-        // 選択されたオプションをループして、topping_callsのデータを作成
-        Object.entries(selectedOptions).forEach(([toppingIdStr, optionIds]) => {
+        // 選択されたオプションをループして、事前用のtopping_callsのデータを作成
+        Object.entries(selectedPreCallOptions).forEach(([toppingIdStr, optionIds]) => {
+            const toppingId = Number(toppingIdStr)
+            optionIds.forEach(optionId => {
+                // ToppingCallの配列にプッシュする
+                result.push({
+                    topping_id: toppingId,
+                    call_option_id: optionId,
+                    call_timing: "pre_call",
+                    noodle_type_id: 1
+                })
+            })
+        })
+
+        // 選択されたオプションをループして、着丼前用topping_callsのデータを作成
+        Object.entries(selectedPostCallOptions).forEach(([toppingIdStr, optionIds]) => {
             const toppingId = Number(toppingIdStr)
             optionIds.forEach(optionId => {
                 // ToppingCallの配列にプッシュする
@@ -406,33 +415,88 @@ export default function StoreCreate() {
                     </View>
                     {/* トッピングコール詳細入力フィールド群 */}
                     <Text style={styles.sectionTitle}>トッピングコール情報</Text>
-                    {toppings.map(topping => {
-                        // トッピングカテゴリーに対応するコールオプションを取得
-                        const toppingCallOptions = toppingCategoryOptionsMap[topping.topping_category] || []
-                        return (
-                            <View key={topping.id} style={styles.optionContainer}>
-                                <Text style={styles.optionLabel}>{topping.topping_name}</Text>
-                                <View style={styles.optionGrid}>
-                                    {toppingCallOptions.map((option) => (
-                                        <View key={option.id} style={styles.checkboxContainer}>
-                                            <Checkbox.Item
-                                                label={option.call_option_name}
-                                                status={selectedOptions[topping.id].includes(option.id) ? "checked" : "unchecked"}
-                                                onPress={() => handleCheckboxChange(
-                                                    topping.id,
-                                                    option.id,
-                                                    !selectedOptions[topping.id]?.includes(option.id)
-                                                )}
-                                                style={styles.checkboxItem}
-                                                labelStyle={styles.checkboxLabel}
-                                                mode={Platform.OS === "ios" ? "ios" : "android"}
-                                            />
-                                        </View>
-                                    ))}
+                    {/* 事前用トッピングコール情報 */}
+                    <List.Accordion
+                        title="事前トッピングコール情報"
+                        left={props => <List.Icon {...props} icon="clipboard-outline" />}
+                        expanded={preCallExpanded}
+                        onPress={() => setPreCallExpanded(!preCallExpanded)}
+                        style={styles.accordion}
+                    >
+                        {toppings.map(topping => {
+                            // トッピングカテゴリーに対応するコールオプションを取得
+                            const toppingCallOptions = toppingCategoryOptionsMap[topping.topping_category] || []
+                            return (
+                                <View key={`pre-${topping.id}`} style={styles.optionContainer}>
+                                    <Text style={styles.optionLabel}>{topping.topping_name}</Text>
+                                    <View style={styles.optionGrid}>
+                                        {toppingCallOptions.map((option) => (
+                                            <View key={option.id} style={styles.checkboxContainer}>
+                                                <Checkbox.Item
+                                                    label={option.call_option_name}
+                                                    status={selectedPreCallOptions[topping.id].includes(option.id) ? "checked" : "unchecked"}
+                                                    onPress={() => handleCheckboxChange(
+                                                        topping.id,
+                                                        option.id,
+                                                        !selectedPreCallOptions[topping.id]?.includes(option.id),
+                                                        "pre_call"
+                                                    )}
+                                                    style={styles.checkboxItem}
+                                                    labelStyle={styles.checkboxLabel}
+                                                    mode={Platform.OS === "ios" ? "ios" : "android"}
+                                                />
+                                            </View>
+                                        ))}
+                                    </View>
                                 </View>
-                            </View>
-                        )
-                    })}
+                            )
+                        })}
+                    </List.Accordion>
+
+                    {/* 着丼前用トッピングコール情報 */}
+                    <List.Accordion
+                        title="着丼前用トッピングコール情報"
+                        left={props => (
+                            <List.Icon
+                                {...props}
+                                icon={({ size, color }) => (
+                                    <FontAwesome6 name="bowl-food" size={size} color={color} />
+                                )}
+                            />
+                        )}
+                        expanded={postCallExpanded}
+                        onPress={() => setPostCallExpanded(!postCallExpanded)}
+                        style={styles.accordion}
+                    >
+                        {toppings.map(topping => {
+                            // トッピングカテゴリーに対応するコールオプションを取得
+                            const toppingCallOptions = toppingCategoryOptionsMap[topping.topping_category] || []
+                            return (
+                                <View key={`post-${topping.id}`} style={styles.optionContainer}>
+                                    <Text style={styles.optionLabel}>{topping.topping_name}</Text>
+                                    <View style={styles.optionGrid}>
+                                        {toppingCallOptions.map((option) => (
+                                            <View key={option.id} style={styles.checkboxContainer}>
+                                                <Checkbox.Item
+                                                    label={option.call_option_name}
+                                                    status={selectedPostCallOptions[topping.id].includes(option.id) ? "checked" : "unchecked"}
+                                                    onPress={() => handleCheckboxChange(
+                                                        topping.id,
+                                                        option.id,
+                                                        !selectedPostCallOptions[topping.id]?.includes(option.id),
+                                                        "post_call"
+                                                    )}
+                                                    style={styles.checkboxItem}
+                                                    labelStyle={styles.checkboxLabel}
+                                                    mode={Platform.OS === "ios" ? "ios" : "android"}
+                                                />
+                                            </View>
+                                        ))}
+                                    </View>
+                                </View>
+                            )
+                        })}
+                    </List.Accordion>
 
                     {/* 詳細情報入力フィールド群 */}
                     <Controller
@@ -597,5 +661,9 @@ const styles = StyleSheet.create({
     },
     checkboxLabel: {
         fontSize: 14
+    },
+    accordion: {
+        marginBottom: 16,
+        backgroundColor: 'rgba(0, 0, 0, 0.1)'
     }
 })
