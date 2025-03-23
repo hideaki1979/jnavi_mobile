@@ -1,6 +1,16 @@
 import ApiClient from "./Apiclient"
 import { StoreData } from "../types/store"
-import { ApiStoreData, MapApiResponse, MapData, StoreApiResponse, StoreGetApiResponse } from "../types/storeApiResponse"
+import {
+    ApiStoreData,
+    MapApiResponse,
+    MapData,
+    StoreApiResponse,
+    StoreGetApiResponse,
+    SimulationSelectStoresData,
+    SimulationSelectStoresApiRes,
+    SimulationSelectToppingCallsApiRes,
+    SimulationSelectToppingCallsData
+} from "../types/storeApiResponse"
 
 const api = ApiClient.getInstance()
 
@@ -9,14 +19,18 @@ const api = ApiClient.getInstance()
  * @param storeData 登録する店舗データ
  * @returns APIレスポンス
  */
-export const createStore = async (storeData: StoreData): Promise<StoreApiResponse> => {
+export const createStore = async (
+    storeData: StoreData
+): Promise<StoreApiResponse> => {
     try {
         const response = await api.post(`/stores`, storeData)
         console.log("店舗情報登録返却データ：", response.data)
         return response.data
-
     } catch (error) {
-        throw ApiClient.handleError(error, "店舗情報登録時に予期せぬエラーが発生しました")
+        throw ApiClient.handleError(
+            error,
+            "店舗情報登録時に予期せぬエラーが発生しました"
+        )
     }
 }
 
@@ -33,33 +47,22 @@ export const getStoreById = async (id: string): Promise<ApiStoreData> => {
         data.id = Number(data.id)
         // store_topping_callsの各要素を処理
         if (data.store_topping_calls && Array.isArray(data.store_topping_calls)) {
-            data.store_topping_calls = data.store_topping_calls.map(item => {
+            data.store_topping_calls = data.store_topping_calls.map((item) => {
                 // store_topping_callsの各IDをNumber型に変換
                 item.store_id = Number(item.store_id)
                 item.topping_id = Number(item.topping_id)
                 item.call_option_id = Number(item.call_option_id)
                 item.noodle_type_id = Number(item.noodle_type_id)
 
-                // ネストされたオブジェクトも変換
-                if (item.topping) {
-                    item.topping.id = Number(item.topping.id)
-                }
-
-                if (item.call_option) {
-                    item.call_option.id = Number(item.call_option.id)
-                }
-
-                if (item.noodle_type) {
-                    item.noodle_type.id = Number(item.noodle_type.id)
-                }
-
                 return item
             })
         }
         return data
-
     } catch (error) {
-        throw ApiClient.handleError(error, "店舗情報取得時に予期せぬエラーが発生しました")
+        throw ApiClient.handleError(
+            error,
+            "店舗情報取得時に予期せぬエラーが発生しました"
+        )
     }
 }
 
@@ -85,8 +88,47 @@ export const getMapAll = async (): Promise<MapData[]> => {
         }))
         // console.log("型変換後Mapデータ：", mapDataArray)
         return mapDataArray
-
     } catch (error) {
-        throw ApiClient.handleError(error, "Map情報取得時に予期せぬエラーが発生しました")
+        throw ApiClient.handleError(
+            error,
+            "Map情報取得時に予期せぬエラーが発生しました"
+        )
     }
 }
+
+export const getStoresAll = async (): Promise<SimulationSelectStoresData[]> => {
+    try {
+        const response = await api.get<SimulationSelectStoresApiRes>("/stores")
+        const storesArray = response.data.data.map(
+            (store: SimulationSelectStoresData) => ({
+                id: store.id,
+                store_name: store.store_name,
+                branch_name: store.branch_name
+            })
+        )
+        return storesArray
+    } catch (error) {
+        throw ApiClient.handleError(
+            error,
+            "Map情報取得時に予期せぬエラーが発生しました"
+        )
+    }
+}
+
+export const getStoreToppingCalls = async (id: string, callTiming: string): Promise<SimulationSelectToppingCallsData> => {
+    try {
+        const response = await api.get<SimulationSelectToppingCallsApiRes>(`/stores/${id}/toppingcalls`, {
+            params: {
+                call_timing: callTiming
+            }
+        })
+
+        return response.data.data
+    } catch (error) {
+        throw ApiClient.handleError(
+            error,
+            "店舗情報・店舗別コールトッピング（事前／着丼前）情報取得時に予期せぬエラーが発生しました"
+        )
+    }
+}
+

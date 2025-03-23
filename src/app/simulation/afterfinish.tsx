@@ -128,6 +128,7 @@ const styles = StyleSheet.create({
     },
     nextButton: {
         width: "50%",
-        alignSelf: "center"
+        alignSelf: "center",
+        marginBottom: 24
     }
 })

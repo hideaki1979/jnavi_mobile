@@ -3,14 +3,25 @@ import HeaderAppBar from "@/src/components/navigation/HeaderAppBar"
 import { router } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { StyleSheet, View } from "react-native"
-import { Button, Card, Text, useTheme } from "react-native-paper"
+import { Button, Card, Snackbar, Text, useTheme } from "react-native-paper"
 import { SafeAreaView } from "react-native-safe-area-context"
+import { Dropdown } from 'react-native-element-dropdown'
+import { useEffect, useState } from "react"
+import LoadingErrorContainer from '@/src/components/feedback/LoadingErrorContainer'
+import { getStoresAll } from '@/src/api/storeApi'
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 
 
+// チケットのデータ型
 type Ticket = {
     id: number;
     menu_name: string;
     price: number;
+}
+
+type ShopItem = {
+    label: string;
+    value: string | number;
 }
 
 const Tickets: Ticket[] = [
@@ -25,9 +36,70 @@ const Tickets: Ticket[] = [
 export default function TicketMachine() {
 
     const theme = useTheme()
+    const [selectedShop, setSelectedShop] = useState<string>("")
+    const [isFocus, setIsFocus] = useState<boolean>(false)
+    const [loading, setLoading] = useState<boolean>(true)
+    const [error, setError] = useState<string | null>(null)
+    const [stores, setStores] = useState<ShopItem[]>([])
+    const [snackBarVisible, setSnackBarVisible] = useState<boolean>(false)
+
+
+    useEffect(() => {
+        const fetchStoresData = async () => {
+            try {
+                const storesData = await getStoresAll()
+                const dropdownItems: ShopItem[] = storesData.map(store => ({
+                    label: `${store.store_name} ${store.branch_name || ''}`,
+                    value: store.id
+                }))
+                setStores(dropdownItems)
+            } catch (error) {
+                console.error("店舗情報取得エラー:", error)
+                setError("店舗情報の取得に失敗しました")
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchStoresData()
+    }, [])
 
     const handlePressTicket = () => {
-        router.push(`simulation/precall`)
+        if (!selectedShop) {
+            setError("店舗を選択してください")
+            setSnackBarVisible(true)
+            return
+        }
+        router.push({
+            pathname: `simulation/precall`,
+            params: { id: selectedShop }
+        })
+    }
+    // ローディング表示
+    if (loading) {
+        return <LoadingErrorContainer loading={loading} error={null} />
+    }
+
+    const renderItem = (item: ShopItem) => {
+        return (
+            <View style={styles.dropdownItem}>
+                <Text
+                    style={styles.dropdownText}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                >{item.label}</Text>
+            </View>
+        )
+    }
+
+    const renderLeftIcon = () => {
+        return (
+            <MaterialCommunityIcons
+                name="noodles"
+                size={20}
+                color={theme.colors.primary}
+                style={styles.icon}
+            />
+        )
     }
 
     return (
@@ -65,11 +137,47 @@ export default function TicketMachine() {
                     <Text style={styles.instructionText}>あなたは券売機の前にいます。</Text>
                     <Text style={styles.instructionText}>食べたいメニューを選んでください。</Text>
                 </View>
+                <View style={styles.shopSelectorContainer}>
+                    <Dropdown
+                        style={[styles.dropdown, isFocus && {
+                            borderColor: theme.colors.primary
+                        }]}
+                        placeholderStyle={styles.placeholderStyle}
+                        selectedTextStyle={styles.selectedTextStyle}
+                        inputSearchStyle={styles.inputSearchStyle}
+                        iconStyle={styles.iconStyle}
+                        data={stores}
+                        search
+                        maxHeight={300}
+                        labelField="label"
+                        valueField="value"
+                        placeholder={!isFocus ? "店舗を選択してください。" : "....."}
+                        searchPlaceholder="キーワード検索"
+                        value={selectedShop}
+                        onFocus={() => setIsFocus(true)}
+                        onBlur={() => setIsFocus(false)}
+                        onChange={item => {
+                            setSelectedShop(item.value)
+                            setIsFocus(false)
+                        }}
+                        renderItem={renderItem}
+                        renderLeftIcon={renderLeftIcon}
+                    />
+                </View>
             </View>
 
             {/* フッター */}
             <BottomAppBar showRoutes={['map', 'create']} />
 
+            {/* エラー表示用スナックバー */}
+            <Snackbar
+                visible={snackBarVisible}
+                onDismiss={() => setSnackBarVisible(false)}
+                duration={3000}
+                style={{ backgroundColor: theme.colors.error }}
+            >
+                {error}
+            </Snackbar>
         </SafeAreaView>
 
     )
@@ -110,6 +218,38 @@ const styles = StyleSheet.create({
     },
     instructionText: {
         lineHeight: 24
+    },
+    shopSelectorContainer: {
+        padding: 8
+    },
+    dropdown: {
+        padding: 16,
+        borderColor: "#c7c7c7",
+        borderWidth: 1,
+        borderRadius: 8,
+        fontSize: 12
+    },
+    dropdownItem: {
+        padding: 8
+    },
+    dropdownText: {
+        flex: 1,
+        fontSize: 12
+    },
+    icon: {
+        marginRight: 8
+    },
+    placeholderStyle: {
+        fontSize: 16
+    },
+    selectedTextStyle: {
+        fontSize: 16
+    },
+    iconStyle: {
+        width: 24,
+        height: 24
+    },
+    inputSearchStyle: {
+        fontSize: 12
     }
 })
-

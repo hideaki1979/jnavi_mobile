@@ -31,8 +31,8 @@ export interface StoreData {
  * トッピングコール情報の型定義
  */
 export interface ToppingCall {
-    topping_id: number;
-    call_option_id: number;
+    topping_id: number | string;
+    call_option_id: number | string;
     call_timing: "pre_call" | "post_call";
     noodle_type_id: number
 }

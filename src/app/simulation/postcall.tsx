@@ -1,32 +1,42 @@
-import { router } from "expo-router"
+import { router, useLocalSearchParams } from "expo-router"
 import { useEffect, useState } from "react"
 import { ScrollView, StyleSheet, View } from "react-native"
-import { Button, Card, RadioButton, Text, useTheme } from "react-native-paper"
+import { Button, Card, RadioButton, Snackbar, Text, useTheme } from "react-native-paper"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { Asset } from 'expo-asset'
 import postCallImageSource from '../../../public/images/jiro_counter2_manga_final.jpg'
 import HeaderAppBar from "@/src/components/navigation/HeaderAppBar"
 import BottomAppBar from "@/src/components/navigation/BottomAppBar"
-import { getStoreById } from "@/src/api/storeApi"
-import { ApiStoreData } from "@/src/types/storeApiResponse"
+import { getStoreToppingCalls } from "@/src/api/storeApi"
+import { SimulationSelectToppingCallsData } from "@/src/types/storeApiResponse"
 import { getCallOptions, getToppings } from "@/src/api/toppingApi"
 import { CallOptionData, ToppingData } from "@/src/types/topping"
 import LoadingErrorContainer from "@/src/components/feedback/LoadingErrorContainer"
 import { StatusBar } from "expo-status-bar"
 
-interface FormattedOptions {
-    [toppingName: string]: string[]
+
+interface PostCallOptions {
+    toppingId: string | number;
+    toppingName: string;
+    options: {
+        optionId: string | number;
+        optionName: string;
+    }[];
 }
 
 export default function PostCall() {
+    const { id } = useLocalSearchParams<{ id: string }>()
     const theme = useTheme()
     const postCallImage = Asset.fromModule(postCallImageSource)
 
-    // ラジオボタンの選択状態を管理
-    const [toppingSelections, setToppingSelections] = useState<{ [key: string]: string }>({})
+    // エラー、ローディングを管理
     const [loading, setLoading] = useState<boolean>(true)
-    const [, setStoreData] = useState<ApiStoreData | null>(null)
-    const [formattedOptions, setFormattedOptions] = useState<FormattedOptions>({})
+    const [error, setError] = useState<string | null>(null)
+    const [snackBarVisible, setSnackBarVisible] = useState<boolean>(false)
+
+    // 店舗別コールトッピング情報、ユーザーのラジオ選択状態を管理
+    const [postcallOptions, setPostcallOptions] = useState<PostCallOptions[]>([])
+    const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({})
 
     // APIからコールトッピング情報を取得
     useEffect(() => {
@@ -34,17 +44,22 @@ export default function PostCall() {
             try {
                 // 店舗情報・トッピングコール情報を並列で取得する。(IDは暫定で固定)
                 const [storeRes, toppingRes, callOptionRes] = await Promise.all([
-                    getStoreById('13'),
+                    getStoreToppingCalls(id, "post_call"),
                     getToppings(),
                     getCallOptions()
                 ])
-                setStoreData(storeRes)
+
+                // データがない場合は早期リターン
+                if (!storeRes.store_topping_calls || storeRes.store_topping_calls.length === 0) {
+                    setLoading(false)
+                    return
+                }
 
                 // トッピングデータがある場合は整形する
-                // 例：{ "ニンニク": ["抜き", "少なめ", "マシ"], "野菜": ["ちょいマシ", "マシ", "マシマシ"] }
-                if (storeRes.store_topping_calls && storeRes.store_topping_calls.length > 0) {
-                    formatToppingOptions(storeRes, toppingRes, callOptionRes)
-                }
+                // 例：[{"toppingId":3,"toppingName":"アブラ","options":[{"optionId":"4","optionName":"抜き"},{"optionId":"5","optionName":"少なめ"}]},{"toppingId":4,"toppingName":"カラメ","options":[{"optionId":"4","optionName":"抜き"},{"optionId":"5","optionName":"少なめ"}]},{"toppingId":5,"toppingName":"麺の硬さ","options":[{"optionId":"2","optionName":"硬め"},{"optionId":"3","optionName":"カタカタ"}]},{"toppingId":6,"toppingName":"麺量","options":[{"optionId":"9","optionName":"半分"},{"optionId":"10","optionName":"少なめ"}]}]
+                const formattedOptions = formatToppingOptions(storeRes.store_topping_calls, toppingRes, callOptionRes)
+                setPostcallOptions(formattedOptions)
+
             } catch (error) {
                 console.log("店舗情報取得エラー：", error)
             } finally {
@@ -64,56 +79,87 @@ export default function PostCall() {
      * @returns トッピングのコール情報
      */
     const formatToppingOptions = (
-        store: ApiStoreData,
+        store: SimulationSelectToppingCallsData['store_topping_calls'],
         toppings: ToppingData[],
         callOptions: CallOptionData[]
     ) => {
-        // 店舗別トッピングコールがない場合は、整形無しでリターン
-        if (!store.store_topping_calls) return
+        // トッピングIDごとの一時データ保持用オブジェクト
+        const optionMap: Record<string, PostCallOptions> = {}
 
-        // トッピング用のオブジェクト初期化
-        const formatted: FormattedOptions = {}
-
-        // 各種トッピングのコール情報を格納する
-        store.store_topping_calls.map((topping_call) => {
-            // トッピングとコールオプションを取得
-            const topping = toppings.find(t => t.id === topping_call.topping_id)
-            const callOption = callOptions.find(co => co.id === topping_call.call_option_id)
+        // 店舗別コールトッピング情報から画面表示用にデータ整形を行う
+        store?.forEach((call) => {
+            // 店舗別トッピングコール情報に合致するトッピングとコールオプションを取得
+            const topping = toppings.find(t => String(t.id) === call.topping_id)
+            const callOption = callOptions.find(co => String(co.id) === call.call_option_id)
 
             console.log("トッピング配列情報：", topping)
             console.log("コールオプション配列情報：", callOption)
 
             if (!topping || !callOption) return
 
-            // トッピングコールオプションをオブジェクト配列形式に整形する。
-            // { "ニンニク": ["マシ", "マシマシ"], "野菜": ["抜き", "少し", "ちょいマシ"] }
-            if (!formatted[topping.topping_name]) {
-                formatted[topping.topping_name] = []
-            }
-            formatted[topping.topping_name].push(callOption.call_option_name)
-            console.log("トッピングコール配列：", formatted)
-        })
-        setFormattedOptions(formatted)
-    }
-
-    const handleCallOption = () => {
-        let callText = ""
-
-        // 各種トッピングについて処理
-        Object.entries(toppingSelections).forEach(([toppingName, selection]) => {
-            if (selection) {
-                // 既に他のトッピングがある場合は改行を追加
-                if (callText) callText += "\n"
-
-                // 「ちょいマシ」の場合は名前のみ表示（例：「ニンニク」）
-                if (selection === "ちょいマシ") {
-                    callText += toppingName
-                } else {
-                    // 上記以外は「トッピング名＋選択肢」を表示（例：「ニンニクマシ」）
-                    callText += toppingName + selection
+            // マップに存在しない場合は初期化
+            if (!optionMap[topping.id]) {
+                optionMap[topping.id] = {
+                    toppingId: topping.id,
+                    toppingName: topping.topping_name,
+                    options: []
                 }
             }
+            // マップに店舗別トッピングコール情報を設定する。
+            optionMap[topping.id].options.push({
+                optionId: callOption.id,
+                optionName: callOption.call_option_name
+            })
+            console.log("トッピングコール配列：", JSON.stringify(optionMap, null, 2))
         })
+        // オブジェクト→配列形式に変換して返却
+        return Object.values(optionMap)
+    }
+
+    /**
+     * ラジオボタン選択時の処理
+     * 選択されたトッピングIDと選択されたコールオプションIDをstateに保存する
+     * @param toppingId トッピングID
+     * @param optionId コールオプションID
+     */
+    const handleOptionChange = (toppingId: string, optionId: string) => {
+        setSelectedOptions(prev => ({
+            ...prev,
+            [toppingId]: optionId
+        }))
+    }
+
+
+    const handleCallOption = () => {
+
+        // 未選択の場合はエラーとする。
+        if (Object.keys(selectedOptions).length === 0) {
+            setError("オプションが選択されてません")
+            setSnackBarVisible(true)
+            return
+        }
+
+        let callText = ""
+
+        // 選択されたオプションからコール文字列を作成
+        postcallOptions.forEach(callOption => {
+            // 選択したトッピングIDに紐づくオプション情報を取得する
+            const selectedOptionId = selectedOptions[callOption.toppingId]
+            if (!selectedOptionId) return
+
+            const selectedOption = callOption.options.find(opt => String(opt.optionId) === selectedOptionId)
+            if (!selectedOption) return
+
+            if (callText) callText += `\n`
+
+            // ちょいマシの場合はトッピング名のみ設定
+            if (String(selectedOption.optionName) === "ちょいマシ") {
+                callText += `${callOption.toppingName}`
+            } else {
+                callText += `${callOption.toppingName}${selectedOption?.optionName}`
+            }
+        })
+
         // トッピングコール結果画面遷移
         router.push({
             pathname: `simulation/postcall_result`,
@@ -148,23 +194,27 @@ export default function PostCall() {
                 </Text>
 
                 {/* トッピングコールオプション情報 */}
-                {Object.entries(formattedOptions).map(([toppingName, options]: [string, string[]]) => (
-                    <View key={toppingName} style={styles.radioGroup}>
+                {postcallOptions.map((toppingOption) => (
+                    <View key={toppingOption.toppingId} style={styles.radioGroup}>
                         <Text style={styles.radioLabel}>
-                            {toppingName}
+                            {toppingOption.toppingName}
                         </Text>
                         <RadioButton.Group
-                            onValueChange={(value) => {
-                                setToppingSelections(prev => ({
-                                    ...prev,
-                                    [toppingName]: value
-                                }))
-                            }}
-                            value={toppingSelections[toppingName] || ''}
+                            onValueChange={(value) => (
+                                handleOptionChange(
+                                    String(toppingOption.toppingId),
+                                    value
+                                ))}
+                            value={selectedOptions[toppingOption.toppingId] || ''}
                         >
                             <View style={styles.radioItemGrid}>
-                                {options.map((option: string, index: number) => (
-                                    <RadioButton.Item key={index} label={option} value={option} labelVariant="labelLarge" />
+                                {toppingOption.options.map((option) => (
+                                    <RadioButton.Item
+                                        key={option.optionId}
+                                        label={option.optionName}
+                                        value={String(option.optionId)}
+                                        labelVariant="labelLarge"
+                                    />
                                 ))}
                             </View>
                         </RadioButton.Group>
@@ -190,6 +240,17 @@ export default function PostCall() {
 
             {/* フッター */}
             <BottomAppBar showRoutes={["map", "create"]} />
+
+            {/* エラー表示用スナックバー */}
+            <Snackbar
+                visible={snackBarVisible}
+                onDismiss={() => setSnackBarVisible(false)}
+                duration={3000}
+                style={{ backgroundColor: theme.colors.error }}
+            >
+                {error}
+            </Snackbar>
+
         </SafeAreaView >
     )
 }

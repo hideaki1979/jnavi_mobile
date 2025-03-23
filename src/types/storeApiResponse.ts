@@ -1,3 +1,5 @@
+import { ToppingCall } from "./store"
+
 // トッピング情報の型定義
 export interface StoreToppingCall {
     store_id: string | number;
@@ -77,7 +79,7 @@ export interface StoreGetApiResponse {
 export interface MapStore {
     id: string | number;
     store_name: string;
-    branch_name: string | null;
+    branch_name?: string | null;
     address: string;
     images?: string[] | null
 }
@@ -95,4 +97,29 @@ export interface MapApiResponse {
     status: string;
     message: string;
     data: MapData[];
+}
+
+// シミュレーション用の店舗データ（食券購入で店舗全件取得）
+export interface SimulationSelectStoresData {
+    id: string | number;
+    store_name: string;
+    branch_name?: string | null;
+}
+export interface SimulationSelectStoresApiRes {
+    data: SimulationSelectStoresData[];
+    status: string;
+    message: string;
+}
+
+// シミュレーション用の店舗データ（事前トッピング／着丼前トッピング）
+export interface SimulationSelectToppingCallsData {
+    store_id: string | number;
+    store_name: string;
+    branch_name?: string | null;
+    store_topping_calls?: ToppingCall[];
+}
+export interface SimulationSelectToppingCallsApiRes {
+    data: SimulationSelectToppingCallsData;
+    status: string;
+    message: string;
 }

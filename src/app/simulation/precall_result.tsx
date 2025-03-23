@@ -7,15 +7,19 @@ import { Button, Text, useTheme } from "react-native-paper"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 type callScreenParams = {
-    callText: string
+    callText: string;
+    id: string;
 }
 
 export default function PreCallResult() {
-    const { callText } = useLocalSearchParams<callScreenParams>()
+    const { callText, id } = useLocalSearchParams<callScreenParams>()
     const theme = useTheme()
 
     const handleNext = () => {
-        router.push(`simulation/postcall`)
+        router.push({
+            pathname: `simulation/postcall`,
+            params: { id }
+        })
     }
 
     return (
