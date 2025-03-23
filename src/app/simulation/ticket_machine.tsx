@@ -2,7 +2,7 @@ import BottomAppBar from "@/src/components/navigation/BottomAppBar"
 import HeaderAppBar from "@/src/components/navigation/HeaderAppBar"
 import { router } from "expo-router"
 import { StatusBar } from "expo-status-bar"
-import { StyleSheet, View } from "react-native"
+import { KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native"
 import { Button, Card, Snackbar, Text, useTheme } from "react-native-paper"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { Dropdown } from 'react-native-element-dropdown'
@@ -104,39 +104,16 @@ export default function TicketMachine() {
 
     return (
         <SafeAreaView edges={[]} style={styles.container} >
-            <StatusBar style={theme.dark ? "light" : "dark"} />
-            {/* ヘッダー */}
-            <HeaderAppBar showBackButton={true} title="コールシミュレーション" />
+            <KeyboardAvoidingView
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={{ flex: 1 }}
+                keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 32} // iOSでオフセットを追加
+            >
 
-            {/* 券売機 */}
-            <View style={styles.ticketMachineContainer}>
-                <View style={styles.ticketMachine}>
-                    {Tickets.map((ticket) => (
-                        <Card
-                            key={ticket.id}
-                            elevation={2}
-                            style={styles.ticketCard}
-                        >
-                            <Card.Content style={styles.cardContent}>
-                                <Text style={styles.cardText}>
-                                    {ticket.menu_name}
-                                </Text>
-                            </Card.Content>
-                            <Card.Actions style={styles.cardAction}>
-                                <Button
-                                    mode="contained"
-                                    onPress={() => handlePressTicket()}
-                                >
-                                    ¥{ticket.price}
-                                </Button>
-                            </Card.Actions>
-                        </Card>
-                    ))}
-                </View>
-                <View style={styles.instructionContainer}>
-                    <Text style={styles.instructionText}>あなたは券売機の前にいます。</Text>
-                    <Text style={styles.instructionText}>食べたいメニューを選んでください。</Text>
-                </View>
+                <StatusBar style={theme.dark ? "light" : "dark"} />
+                {/* ヘッダー */}
+                <HeaderAppBar showBackButton={true} title="コールシミュレーション" />
+
                 <View style={styles.shopSelectorContainer}>
                     <Dropdown
                         style={[styles.dropdown, isFocus && {
@@ -164,7 +141,38 @@ export default function TicketMachine() {
                         renderLeftIcon={renderLeftIcon}
                     />
                 </View>
-            </View>
+
+                {/* 券売機 */}
+                <View style={styles.ticketMachineContainer}>
+                    <View style={styles.ticketMachine}>
+                        {Tickets.map((ticket) => (
+                            <Card
+                                key={ticket.id}
+                                elevation={2}
+                                style={styles.ticketCard}
+                            >
+                                <Card.Content style={styles.cardContent}>
+                                    <Text style={styles.cardText}>
+                                        {ticket.menu_name}
+                                    </Text>
+                                </Card.Content>
+                                <Card.Actions style={styles.cardAction}>
+                                    <Button
+                                        mode="contained"
+                                        onPress={() => handlePressTicket()}
+                                    >
+                                        ¥{ticket.price}
+                                    </Button>
+                                </Card.Actions>
+                            </Card>
+                        ))}
+                    </View>
+                    <View style={styles.instructionContainer}>
+                        <Text style={styles.instructionText}>あなたは券売機の前にいます。</Text>
+                        <Text style={styles.instructionText}>食べたいメニューを選んでください。</Text>
+                    </View>
+                </View>
+            </KeyboardAvoidingView>
 
             {/* フッター */}
             <BottomAppBar showRoutes={['map', 'create']} />
