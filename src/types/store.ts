@@ -24,15 +24,15 @@ export interface StoreData {
     lot_detail?: string;
 
     // トッピングとコールオプション情報
-    topping_calls?: ToppingCall[];
+    topping_calls?: BaseToppingCall[];
 }
 
 /**
- * トッピングコール情報の型定義
+ * トッピングコール情報の基底型型定義
  */
-export interface ToppingCall {
+export interface BaseToppingCall {
     topping_id: number | string;
     call_option_id: number | string;
     call_timing: "pre_call" | "post_call";
-    noodle_type_id: number
+    noodle_type_id: number | string;
 }

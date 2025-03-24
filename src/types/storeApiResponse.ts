@@ -1,12 +1,8 @@
-import { ToppingCall } from "./store"
+import { BaseToppingCall } from "./store"
 
 // トッピング情報の型定義
-export interface StoreToppingCall {
+export interface StoreToppingCall extends BaseToppingCall {
     store_id: string | number;
-    topping_id: string | number;
-    call_option_id: string | number;
-    call_timing: string;
-    noodle_type_id: string | number;
     topping: {
         id: string | number;
         topping_category: number;
@@ -116,7 +112,7 @@ export interface SimulationSelectToppingCallsData {
     store_id: string | number;
     store_name: string;
     branch_name?: string | null;
-    store_topping_calls?: ToppingCall[];
+    store_topping_calls?: BaseToppingCall[];
 }
 export interface SimulationSelectToppingCallsApiRes {
     data: SimulationSelectToppingCallsData;

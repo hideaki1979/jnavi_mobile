@@ -1,5 +1,5 @@
 import { ScrollView, StyleSheet, View } from 'react-native'
-import { Text, useTheme, Surface, Divider, Chip, Snackbar, List } from 'react-native-paper'
+import { Text, useTheme, Surface, Divider, Snackbar, List } from 'react-native-paper'
 import { useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { getStoreById } from '@/src/api/storeApi'
@@ -11,6 +11,8 @@ import LoadingErrorContainer from '@/src/components/feedback/LoadingErrorContain
 import HeaderAppBar from '@/src/components/navigation/HeaderAppBar'
 import { CallOptionData, ToppingData } from '@/src/types/topping'
 import { getCallOptions, getToppings } from '@/src/api/toppingApi'
+import { createFormattedOptions } from '@/src/utils/toppingFormatter'
+import ToppingOptionsAccordion from '@/src/components/store/ToppingOptionsAccordion'
 
 /**
  * 店舗詳細画面コンポーネント
@@ -76,7 +78,11 @@ export default function StoreDetails() {
                 // （麺の硬さ）["硬め", "カタカタ"]
                 // （麺量）["半分", "少なめ"]
                 if (storeRes.store_topping_calls && storeRes.store_topping_calls.length > 0) {
-                    formatToppingOptions(storeRes, toppingRes, callOptionRes)
+                    const { preCallFormatted, postCallFormatted } =
+                        createFormattedOptions(storeRes.store_topping_calls, toppingRes, callOptionRes)
+                    // 状態を更新
+                    setFormattedPreOptions(preCallFormatted)
+                    setFormattedPostOptions(postCallFormatted)
                 }
 
             } catch (err) {
@@ -89,54 +95,6 @@ export default function StoreDetails() {
         }
         fetchStoreToppingCallData()
     }, [id])
-
-    /**
-     * APIから取得したデータを表示用に整形する
-     */
-    const formatToppingOptions = (
-        store: ApiStoreData,
-        toppings: ToppingData[],
-        callOptions: CallOptionData[]
-    ) => {
-        // 店舗別トッピングコールがない場合は、整形無しでリターン
-        if (!store.store_topping_calls) return
-
-        // トッピング用のオブジェクト初期化
-        const formattedPre: FormattedOptions = {}
-        const formattedPost: FormattedOptions = {}
-
-        // 各トッピングコールの配列に格納する
-        store.store_topping_calls.forEach(call => {
-            // トッピングとコールオプションを取得
-            const topping = toppings.find(t => t.id === call.topping_id)
-            const callOption = callOptions.find(t => t.id === call.call_option_id)
-
-            console.log("トッピング配列情報：", topping)
-            console.log("コールオプション配列情報：", callOption)
-
-            if (!topping || !callOption) return
-
-            // 事前コールトッピング整形
-            if (call.call_timing === 'pre_call') {
-                if (!formattedPre[topping.topping_name]) {
-                    formattedPre[topping.topping_name] = []
-                }
-                formattedPre[topping.topping_name].push(callOption.call_option_name)
-                console.log("事前コールトッピング配列：", formattedPre)
-                // 着丼前コールトッピング整形
-            } else {
-                if (!formattedPost[topping.topping_name]) {
-                    formattedPost[topping.topping_name] = []
-                }
-                formattedPost[topping.topping_name].push(callOption.call_option_name)
-                console.log("着丼前コールトッピング配列：", formattedPost)
-            }
-        })
-
-        // 状態を更新
-        setFormattedPreOptions(formattedPre)
-        setFormattedPostOptions(formattedPost)
-    }
 
     // ローディング表示
     if (loading) {
@@ -242,71 +200,28 @@ export default function StoreDetails() {
                         </Text>
                         <Divider style={styles.divider} />
                         {/* ニンニク、野菜、アブラ、カラメなどのコールオプション表示（事前コール） */}
-                        <List.Accordion
-                            title={"事前トッピングコール情報"}
+                        <ToppingOptionsAccordion
+                            title="事前トッピングコール情報"
                             expanded={preExpanded}
                             onPress={() => setPreExpanded(!preExpanded)}
-                            left={props => <List.Icon {...props} icon="clipboard-outline" />}
-                            style={styles.accordionContainer}
-                            titleStyle={styles.accordionTitle}
-                        >
-                            <View style={styles.accordionContent}>
-                                {Object.entries(formattedPreOptions).map(([toppingName, options]: [string, string[]]) => (
-                                    <View key={toppingName} style={styles.toppingCategory}>
-                                        <Text style={styles.toppingLabel}>
-                                            {toppingName}：
-                                        </Text>
-                                        <View style={styles.chipContainer}>
-                                            {options.map((option: string, index: number) => (
-                                                <Chip
-                                                    key={index}
-                                                    style={styles.chip}
-                                                    textStyle={styles.chipText}
-                                                    mode='outlined'>
-                                                    {option}
-                                                </Chip>
-                                            ))}
-                                        </View>
-                                    </View>
-                                ))}
-                            </View>
-                        </List.Accordion>
+                            options={formattedPreOptions}
+                            leftIcon={<List.Icon icon="clipboard-outline" />}
+                        />
 
                         {/* ニンニク、野菜、アブラ、カラメなどのコールオプション表示（着丼前コール） */}
-                        <List.Accordion
-                            title={"着丼前トッピングコール情報"}
+                        <ToppingOptionsAccordion
+                            title="着丼前トッピングコール情報"
                             expanded={postExpanded}
                             onPress={() => setPostExpanded(!postExpanded)}
-                            left={props =>
+                            options={formattedPostOptions}
+                            leftIcon={
                                 <List.Icon
-                                    {...props}
                                     icon={({ size, color }) => (
                                         <FontAwesome6 size={size} color={color} name="bowl-food" />
-                                    )} />}
-                            style={styles.accordionContainer}
-                            titleStyle={styles.accordionTitle}
-                        >
-                            <View style={styles.accordionContent}>
-                                {Object.entries(formattedPostOptions).map(([toppingName, options]: [string, string[]]) => (
-                                    <View key={toppingName} style={styles.toppingCategory}>
-                                        <Text style={styles.toppingLabel}>
-                                            {toppingName}：
-                                        </Text>
-                                        <View style={styles.chipContainer}>
-                                            {options.map((option: string, index: number) => (
-                                                <Chip
-                                                    key={index}
-                                                    style={styles.chip}
-                                                    textStyle={styles.chipText}
-                                                    mode='outlined'>
-                                                    {option}
-                                                </Chip>
-                                            ))}
-                                        </View>
-                                    </View>
-                                ))}
-                            </View>
-                        </List.Accordion>
+                                    )}
+                                />
+                            }
+                        />
                     </View>
 
                     {/* トッピングコール補足情報表示 */}
@@ -466,22 +381,6 @@ const styles = StyleSheet.create({
     infoValue: {
         flex: 1
     },
-    toppingCategory: {
-        marginBottom: 8
-    },
-    toppingLabel: {
-        fontWeight: "bold"
-    },
-    chipContainer: {
-        flexDirection: "row",
-        flexWrap: "wrap"
-    },
-    chip: {
-        margin: 8
-    },
-    chipText: {
-        fontSize: 10
-    },
     detailSection: {
         marginBottom: 16
     },
@@ -493,16 +392,5 @@ const styles = StyleSheet.create({
     detailText: {
         paddingLeft: 28,
         lineHeight: 20
-    },
-    accordionContainer: {
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#E0E0E0'
-    },
-    accordionTitle: {
-        fontWeight: "bold"
-    },
-    accordionContent: {
-        paddingVertical: 16
     }
 })

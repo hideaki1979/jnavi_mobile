@@ -2,7 +2,7 @@ import {
     View, ScrollView, Platform, KeyboardAvoidingView, StyleSheet
 } from "react-native"
 import {
-    Text, TextInput, Button, Checkbox, useTheme, Switch, Snackbar,
+    Text, TextInput, Button, useTheme, Switch, Snackbar,
     List
 } from "react-native-paper"
 import { useForm, Controller } from "react-hook-form"
@@ -11,13 +11,15 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import { StatusBar } from "expo-status-bar"
 import { createStore } from "@/src/api/storeApi"
 import { useEffect, useMemo, useState } from "react"
-import { StoreData, ToppingCall } from "@/src/types/store"
+import { StoreData } from "@/src/types/store"
 import { StoreApiResponse } from "@/src/types/storeApiResponse"
 import HeaderAppBar from "@/src/components/navigation/HeaderAppBar"
 import { CallOptionData, ToppingData } from "@/src/types/topping"
 import { getCallOptions, getToppings } from "@/src/api/toppingApi"
 import LoadingErrorContainer from "@/src/components/feedback/LoadingErrorContainer"
 import { FontAwesome6 } from "@expo/vector-icons"
+import { generateToppingCalls } from "@/src/utils/toppingFormatter"
+import StoreRegisterToppingOptionSelector from "@/src/components/store/StoreRegisterToppingOptionSelector"
 
 /**
  * 店舗情報登録画面コンポーネント
@@ -99,7 +101,10 @@ export default function StoreCreate() {
     const onSubmit = async (data: StoreData) => {
         try {
             // トッピング情報を生成
-            const toppingCalls = generateToppingCalls()
+            const toppingCalls = generateToppingCalls(
+                selectedPreCallOptions,
+                selectedPostCallOptions
+            )
 
             // 送信データを作成
             const submitData = {
@@ -147,7 +152,7 @@ export default function StoreCreate() {
      * @param isChecked チェック状態
      * @param callType コールタイプ（pre_call または post_call）
      */
-    const handleCheckboxChange = (toppingId: number, optionId: number, isChecked: boolean, callType: string) => {
+    const handleCheckboxChange = (toppingId: number, optionId: number, isChecked: boolean, callType: 'pre_call' | 'post_call') => {
         // コールタイプに従ってセット関数を確定する
         const setSelectedOptions = callType === 'pre_call'
             ? setSelectedPreCallOptions
@@ -202,43 +207,6 @@ export default function StoreCreate() {
         // 作成したマップを返す
         return map
     }, [toppings, callOptions]) // トッピングがコールオプションが変更時のみ再計算
-
-    /**
-     * 選択されたトッピングとコールオプションからIDのマッピングを生成する
-     */
-    const generateToppingCalls = (): ToppingCall[] => {
-        const result: ToppingCall[] = []
-
-        // 選択されたオプションをループして、事前用のtopping_callsのデータを作成
-        Object.entries(selectedPreCallOptions).forEach(([toppingIdStr, optionIds]) => {
-            const toppingId = Number(toppingIdStr)
-            optionIds.forEach(optionId => {
-                // ToppingCallの配列にプッシュする
-                result.push({
-                    topping_id: toppingId,
-                    call_option_id: optionId,
-                    call_timing: "pre_call",
-                    noodle_type_id: 1
-                })
-            })
-        })
-
-        // 選択されたオプションをループして、着丼前用topping_callsのデータを作成
-        Object.entries(selectedPostCallOptions).forEach(([toppingIdStr, optionIds]) => {
-            const toppingId = Number(toppingIdStr)
-            optionIds.forEach(optionId => {
-                // ToppingCallの配列にプッシュする
-                result.push({
-                    topping_id: toppingId,
-                    call_option_id: optionId,
-                    call_timing: "post_call",
-                    noodle_type_id: 1
-                })
-            })
-        })
-        console.log("選択コールオプション：", result)
-        return result
-    }
 
     // データ読み込み中の表示
     if (isLoading) {
@@ -423,34 +391,15 @@ export default function StoreCreate() {
                         onPress={() => setPreCallExpanded(!preCallExpanded)}
                         style={styles.accordion}
                     >
-                        {toppings.map(topping => {
-                            // トッピングカテゴリーに対応するコールオプションを取得
-                            const toppingCallOptions = toppingCategoryOptionsMap[topping.topping_category] || []
-                            return (
-                                <View key={`pre-${topping.id}`} style={styles.optionContainer}>
-                                    <Text style={styles.optionLabel}>{topping.topping_name}</Text>
-                                    <View style={styles.optionGrid}>
-                                        {toppingCallOptions.map((option) => (
-                                            <View key={option.id} style={styles.checkboxContainer}>
-                                                <Checkbox.Item
-                                                    label={option.call_option_name}
-                                                    status={selectedPreCallOptions[topping.id].includes(option.id) ? "checked" : "unchecked"}
-                                                    onPress={() => handleCheckboxChange(
-                                                        topping.id,
-                                                        option.id,
-                                                        !selectedPreCallOptions[topping.id]?.includes(option.id),
-                                                        "pre_call"
-                                                    )}
-                                                    style={styles.checkboxItem}
-                                                    labelStyle={styles.checkboxLabel}
-                                                    mode={Platform.OS === "ios" ? "ios" : "android"}
-                                                />
-                                            </View>
-                                        ))}
-                                    </View>
-                                </View>
-                            )
-                        })}
+                        <StoreRegisterToppingOptionSelector
+                            toppings={toppings}
+                            toppingCategoryOptionsMap={toppingCategoryOptionsMap}
+                            selectedOptions={selectedPreCallOptions}
+                            onOptionChange={(toppingId, optionId, isChecked) =>
+                                handleCheckboxChange(toppingId, optionId, isChecked, 'pre_call')
+                            }
+                            callType="pre_call"
+                        />
                     </List.Accordion>
 
                     {/* 着丼前用トッピングコール情報 */}
@@ -468,34 +417,15 @@ export default function StoreCreate() {
                         onPress={() => setPostCallExpanded(!postCallExpanded)}
                         style={styles.accordion}
                     >
-                        {toppings.map(topping => {
-                            // トッピングカテゴリーに対応するコールオプションを取得
-                            const toppingCallOptions = toppingCategoryOptionsMap[topping.topping_category] || []
-                            return (
-                                <View key={`post-${topping.id}`} style={styles.optionContainer}>
-                                    <Text style={styles.optionLabel}>{topping.topping_name}</Text>
-                                    <View style={styles.optionGrid}>
-                                        {toppingCallOptions.map((option) => (
-                                            <View key={option.id} style={styles.checkboxContainer}>
-                                                <Checkbox.Item
-                                                    label={option.call_option_name}
-                                                    status={selectedPostCallOptions[topping.id].includes(option.id) ? "checked" : "unchecked"}
-                                                    onPress={() => handleCheckboxChange(
-                                                        topping.id,
-                                                        option.id,
-                                                        !selectedPostCallOptions[topping.id]?.includes(option.id),
-                                                        "post_call"
-                                                    )}
-                                                    style={styles.checkboxItem}
-                                                    labelStyle={styles.checkboxLabel}
-                                                    mode={Platform.OS === "ios" ? "ios" : "android"}
-                                                />
-                                            </View>
-                                        ))}
-                                    </View>
-                                </View>
-                            )
-                        })}
+                        <StoreRegisterToppingOptionSelector
+                            toppings={toppings}
+                            toppingCategoryOptionsMap={toppingCategoryOptionsMap}
+                            selectedOptions={selectedPostCallOptions}
+                            onOptionChange={(toppingId, optionId, isChecked) =>
+                                handleCheckboxChange(toppingId, optionId, isChecked, 'post_call')
+                            }
+                            callType="post_call"
+                        />
                     </List.Accordion>
 
                     {/* 詳細情報入力フィールド群 */}
