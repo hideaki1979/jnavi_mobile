@@ -76,6 +76,6 @@ export const handleSpeech = (
             onDone: () => setIsSpeaking(false),
             onError: () => setIsSpeaking(false)
         }
-        Speech.speak(text || '', options)
+        Speech.speak(text, options)
     }
 }

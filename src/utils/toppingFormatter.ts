@@ -11,6 +11,7 @@ export interface ToppingOption {
     options: {
         optionId: string | number;
         optionName: string;
+        store_topping_call_id?: string;
     }[];
 }
 
@@ -23,24 +24,26 @@ export interface FormattedOptions {
 
 /**
 * APIから取得した店舗トッピングコールデータを画面表示用に整形する
-* （precall,postcall用）
+* （precall,postcall,image_upload用）
 */
 export const formatToppingOptions = (
     storeToppingCalls: SimulationSelectToppingCallsData['store_topping_calls'],
     toppings: ToppingData[],
     callOptions: CallOptionData[],
-    callTiming: 'pre_call' | 'post_call'
+    callTiming: 'pre_call' | 'post_call' | 'all',
+    includeStoreToppingCallId: boolean = false
 ): ToppingOption[] => {
 
     // トッピングIDごとの一時データ保持用オブジェクト
     const optionMap: Record<string, ToppingOption> = {}
-    console.log("storeToppingCalls：", storeToppingCalls)
+    // console.log("storeToppingCalls：", storeToppingCalls)
 
     // 各トッピングコールをループ処理
     storeToppingCalls?.forEach((call) => {
-        // コールタイミングがフィルター条件と一致しない場合はスキップ
-        if (call.call_timing !== callTiming) return
+        // callTimingが'all'の場合はすべて含める、それ以外は指定されたタイミングのみ
+        if (callTiming !== 'all' && call.call_timing !== callTiming) return
 
+        // console.log("call：", call)
         const topping = toppings.find(t => String(t.id) === call.topping_id)
         const callOption = callOptions.find(co => String(co.id) === call.call_option_id)
 
@@ -58,11 +61,13 @@ export const formatToppingOptions = (
         // オプションを追加
         optionMap[topping.id].options.push({
             optionId: String(callOption.id),
-            optionName: callOption.call_option_name
+            optionName: callOption.call_option_name,
+            ...(includeStoreToppingCallId && call.id ? { store_topping_call_id: String(call.id) } : {})
         })
-        console.log("optionMap：", JSON.stringify(optionMap, null, 2))
+        // console.log("optionMap：", JSON.stringify(optionMap, null, 2))
     })
 
+    // console.log("optionMap最終結果：", JSON.stringify(Object.values(optionMap), null, 2))
     // オブジェクトから配列に変換して返す
     return Object.values(optionMap)
 }
@@ -82,15 +87,15 @@ export const createFormattedOptions = (
     // 店舗別トッピングコールがない場合は、整形無しでリターン
     if (!storeToppingCalls) return { preCallFormatted: formattedPre, postCallFormatted: formattedPost }
 
-    console.log("storeToppingCalls：", storeToppingCalls)
+    // console.log("storeToppingCalls：", JSON.stringify(storeToppingCalls, null, 2))
     // 各トッピングコールの配列に格納する
     storeToppingCalls.forEach(call => {
         // トッピングとコールオプションを取得
         const topping = toppings.find(t => t.id === call.topping_id)
         const callOption = callOptions.find(t => t.id === call.call_option_id)
 
-        console.log("トッピング配列情報：", topping)
-        console.log("コールオプション配列情報：", callOption)
+        // console.log("トッピング配列情報：", topping)
+        // console.log("コールオプション配列情報：", callOption)
 
         if (!topping || !callOption) return
 
@@ -100,14 +105,14 @@ export const createFormattedOptions = (
                 formattedPre[topping.topping_name] = []
             }
             formattedPre[topping.topping_name].push(callOption.call_option_name)
-            console.log("formattedPre：", JSON.stringify(formattedPre, null, 2))
+            // console.log("formattedPre：", JSON.stringify(formattedPre, null, 2))
             // 着丼前コールトッピング整形
         } else {
             if (!formattedPost[topping.topping_name]) {
                 formattedPost[topping.topping_name] = []
             }
             formattedPost[topping.topping_name].push(callOption.call_option_name)
-            console.log("formattedPre：", JSON.stringify(formattedPre, null, 2))
+            // console.log("formattedPost：", JSON.stringify(formattedPost, null, 2))
         }
     })
     return { preCallFormatted: formattedPre, postCallFormatted: formattedPost }
@@ -121,8 +126,8 @@ export const generateToppingCalls = (
     selectedPostCallOptions: Record<number, number[]>
 ): BaseToppingCall[] => {
     const result: BaseToppingCall[] = []
-    console.log("selectedPreCallOptions：", selectedPreCallOptions)
-    console.log("selectedPostCallOptions", selectedPostCallOptions)
+    // console.log("selectedPreCallOptions：", selectedPreCallOptions)
+    // console.log("selectedPostCallOptions", selectedPostCallOptions)
     // 選択されたオプションをループして、事前用のtopping_callsのデータを作成
     Object.entries(selectedPreCallOptions).forEach(([toppingIdStr, optionIds]) => {
         const toppingId = Number(toppingIdStr)
@@ -135,7 +140,7 @@ export const generateToppingCalls = (
                 noodle_type_id: 1
             })
         })
-        console.log("事前用送信データ：", JSON.stringify(result, null, 2))
+        // console.log("事前用送信データ：", JSON.stringify(result, null, 2))
     })
 
     // 選択されたオプションをループして、着丼前用topping_callsのデータを作成
@@ -150,7 +155,7 @@ export const generateToppingCalls = (
                 noodle_type_id: 1
             })
         })
-        console.log("着丼用送信データ：", JSON.stringify(result, null, 2))
+        // console.log("着丼用送信データ：", JSON.stringify(result, null, 2))
     })
     return result
 }
@@ -164,16 +169,16 @@ export const generateCallText = (
 ): string => {
     let callText = ""
 
-    console.log("selectedOptions：", selectedOptions)
-    console.log("toppingOptions：", toppingOptions)
+    // console.log("selectedOptions：", selectedOptions)
+    // console.log("toppingOptions：", toppingOptions)
     // 選択されたオプションからコール文字列を作成
     toppingOptions.forEach(option => {
         const selectedOptionId = selectedOptions[option.toppingId]
         if (!selectedOptionId) return
-        console.log("selectedOptionId：", selectedOptionId)
+        // console.log("selectedOptionId：", selectedOptionId)
         const selectedOption = option.options.find(opt => String(opt.optionId) === selectedOptionId)
         if (!selectedOption) return
-        console.log("selectedOption", selectedOption)
+        // console.log("selectedOption", selectedOption)
         if (callText) callText += `\n`
 
         // 麺の硬さ（ID：5）、または麺量（ID: 6）の場合は「麺〜（コールオプション名）」を設定

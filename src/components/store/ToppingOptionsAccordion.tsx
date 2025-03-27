@@ -22,7 +22,7 @@ const ToppingOptionsAccordion: React.FC<ToppingOptionsAccordionProps> = ({
     options,
     leftIcon
 }) => {
-    {/* ニンニク、野菜、アブラ、カラメなどのコールオプション表示（事前コール） */ }
+    {/* ニンニク、野菜、アブラ、カラメなどのコールオプション表示 */ }
     return (
         <List.Accordion
             title={title}

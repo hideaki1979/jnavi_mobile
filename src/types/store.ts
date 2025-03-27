@@ -31,6 +31,7 @@ export interface StoreData {
  * トッピングコール情報の基底型型定義
  */
 export interface BaseToppingCall {
+    id?: number | string;
     topping_id: number | string;
     call_option_id: number | string;
     call_timing: "pre_call" | "post_call";

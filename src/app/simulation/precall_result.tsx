@@ -17,6 +17,7 @@ type callScreenParams = {
  */
 export default function PreCallResult() {
     const { callText, id } = useLocalSearchParams<callScreenParams>()
+    console.log(typeof callText)
 
     return (
         <CallResultScreen

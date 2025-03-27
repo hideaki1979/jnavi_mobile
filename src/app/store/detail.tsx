@@ -1,6 +1,6 @@
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { Text, useTheme, Surface, Divider, Snackbar, List } from 'react-native-paper'
-import { useLocalSearchParams } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { getStoreById } from '@/src/api/storeApi'
 import { FontAwesome6, MaterialCommunityIcons } from "@expo/vector-icons"
@@ -66,7 +66,7 @@ export default function StoreDetails() {
                         getCallOptions()
                     ])
 
-                console.log("店舗情報取得データ：", JSON.stringify(storeRes, null, 2))
+                // console.log("店舗情報取得データ：", JSON.stringify(storeRes, null, 2))
 
                 // 状態管理の更新
                 setStoreData(storeRes)
@@ -112,7 +112,21 @@ export default function StoreDetails() {
             edges={[]}
         >
             <StatusBar style={theme.dark ? "light" : "dark"} />
-            <HeaderAppBar showBackButton={true} title='店舗情報詳細' />
+            <HeaderAppBar
+                showBackButton={true}
+                title='店舗情報詳細'
+                rightAction={{
+                    icon: 'image',
+                    onPress: () => {
+                        router.push({
+                            pathname: `/store/image_upload`,
+                            params: { id: String(storeData.id) }
+                        }
+                        )
+
+                    }
+                }}
+            />
             <ScrollView style={styles.container}>
                 <Surface style={styles.surface} elevation={2}>
                     {/* タイトル */}

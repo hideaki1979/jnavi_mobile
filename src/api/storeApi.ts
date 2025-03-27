@@ -96,6 +96,10 @@ export const getMapAll = async (): Promise<MapData[]> => {
     }
 }
 
+/**
+ * シミュレーション用の店舗情報を全件取得するAPI関数
+ * @returns 取得した店舗情報の配列
+ */
 export const getStoresAll = async (): Promise<SimulationSelectStoresData[]> => {
     try {
         const response = await api.get<SimulationSelectStoresApiRes>("/stores")
@@ -115,6 +119,16 @@ export const getStoresAll = async (): Promise<SimulationSelectStoresData[]> => {
     }
 }
 
+/**
+ * 店舗別のトッピングコール情報を取得するAPI関数
+ * 
+ * 指定された店舗IDとコールタイミングに基づいて、店舗別のトッピングコール情報を取得します。
+ * 
+ * @param id 取得する店舗のID
+ * @param callTiming コールタイミング（"pre_call" または "post_call"）
+ * @returns 指定された店舗のトッピングコールデータ
+ * @throws 店舗情報・店舗別コールトッピング取得時に予期せぬエラーが発生した場合
+ */
 export const getStoreToppingCalls = async (id: string, callTiming: string): Promise<SimulationSelectToppingCallsData> => {
     try {
         const response = await api.get<SimulationSelectToppingCallsApiRes>(`/stores/${id}/toppingcalls`, {
@@ -122,7 +136,7 @@ export const getStoreToppingCalls = async (id: string, callTiming: string): Prom
                 call_timing: callTiming
             }
         })
-
+        // console.log("店舗別トッピングコール情報（店舗単位全レコード）：", response.data.data)
         return response.data.data
     } catch (error) {
         throw ApiClient.handleError(

@@ -83,7 +83,6 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
             // 親コンポーネントのonCloseも呼び出す
             onClose()
             // 店舗詳細画面に遷移
-            console.log("店舗詳細画面遷移")
             router.push({
                 pathname: `store/detail`,
                 params: { id: store?.id }
