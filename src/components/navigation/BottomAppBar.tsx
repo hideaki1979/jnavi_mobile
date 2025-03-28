@@ -1,65 +1,83 @@
 import { router } from "expo-router"
 import { StyleSheet } from "react-native"
-import { Appbar } from "react-native-paper"
+import { Appbar, Text } from "react-native-paper"
+import { View } from "react-native"
 
 type RouteType = 'map' | 'home' | 'create' | 'simulation' | 'account'
 
 type BottomAppBarProps = {
-    // 現在アクティブなルート（複数指定可能）
-    activeRoutes?: RouteType[];
-    // 特定のルートを非表示にする場合に使用する（複数指定可能）
+    // 特定のルートを表示したい場合に使用する（複数指定可能）
     showRoutes?: RouteType[];
 }
 
 /**
  * アプリ全体で使用する共通のボトムナビゲーションバー
  */
-export default function BottomAppBar({ activeRoutes = [], showRoutes = [] }: BottomAppBarProps) {
+export default function BottomAppBar({ showRoutes = [] }: BottomAppBarProps) {
 
     // ルートが非活性かを判定する
-    const isDisbled = (route: RouteType) => activeRoutes.includes(route)
     const shouldShowRoute = (route: RouteType) => showRoutes.includes(route)
 
     return (
         <Appbar style={styles.appBar}>
             {shouldShowRoute('map') && (
-                <Appbar.Action
-                    icon="map"
-                    onPress={() => { router.push(`store/map`) }}
-                    disabled={isDisbled('map')}
-                />
+                <>
+                    <View style={styles.appMenu}>
+                        <Appbar.Action
+                            icon="map"
+                            onPress={() => { router.push(`store/map`) }}
+                        />
+                        <Text style={styles.appText}>map</Text>
+                    </View>
+                </>
             )}
 
             {shouldShowRoute('home') && (
-                <Appbar.Action
-                    icon="home"
-                    onPress={() => { }}
-                    disabled={isDisbled('home')}
-                />
+                <>
+                    <View style={styles.appMenu}>
+                        <Appbar.Action
+                            icon="home"
+                            onPress={() => { }}
+                        />
+                        <Text style={styles.appText}>home</Text>
+                    </View>
+                </>
             )}
 
             {shouldShowRoute('create') && (
-                <Appbar.Action
-                    icon="plus-circle"
-                    onPress={() => { router.push(`store/create`) }}
-                    disabled={isDisbled('create')}
-                />
+                <>
+                    <View style={styles.appMenu}>
+                        <Appbar.Action
+                            icon="plus-circle"
+                            onPress={() => { router.push(`store/create`) }}
+                        />
+                        <Text style={styles.appText}>register</Text>
+                    </View>
+                </>
             )}
 
             {shouldShowRoute('simulation') && (
-                <Appbar.Action
-                    icon="chart-line"
-                    onPress={() => { router.push(`simulation/ticket_machine`) }}
-                    disabled={isDisbled('simulation')}
-                />
+                <>
+                    <View style={styles.appMenu}>
+                        <Appbar.Action
+                            icon="chart-line"
+                            onPress={() => { router.push(`simulation/ticket_machine`) }}
+                        />
+                        <Text style={styles.appText}>simulation</Text>
+                    </View>
+                </>
             )}
 
             {shouldShowRoute('account') && (
-                <Appbar.Action
-                    icon="account"
-                    onPress={() => { }}
-                    disabled={isDisbled('simulation')}
-                />
+                <>
+                    <View style={styles.appMenu}>
+                        <Appbar.Action
+                            icon="account"
+                            onPress={() => { }}
+                        />
+                        <Text style={styles.appText}>account</Text>
+                    </View>
+                </>
             )}
         </Appbar>
     )
@@ -68,5 +86,12 @@ export default function BottomAppBar({ activeRoutes = [], showRoutes = [] }: Bot
 const styles = StyleSheet.create({
     appBar: {
         justifyContent: 'space-evenly'
+    },
+    appMenu: {
+        justifyContent: 'space-between',
+        alignItems: 'center'
+    },
+    appText: {
+        marginTop: -16
     }
 })

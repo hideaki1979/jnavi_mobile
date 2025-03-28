@@ -11,7 +11,6 @@ import { StatusBar } from "expo-status-bar"
 import HeaderAppBar from "@/src/components/navigation/HeaderAppBar"
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native"
 import { Image as ExpoImage } from "expo-image"
-import { MaterialCommunityIcons } from "@expo/vector-icons"
 import BottomAppBar from "@/src/components/navigation/BottomAppBar"
 import LoadingErrorContainer from "@/src/components/feedback/LoadingErrorContainer"
 import { SelectedToppingInfo, StoreImageUploadData } from "@/src/types/storeImage"
@@ -305,16 +304,37 @@ export default function ImageUpload() {
                                     transition={500}
                                     style={styles.selectedImage}
                                 />
+                                <Button
+                                    mode="contained-tonal"
+                                    onPress={() => {
+                                        setImage(null)
+                                        setImageBase64(null)
+                                    }}
+                                    icon="file-image-minus"
+                                    style={styles.removeButton}
+                                    buttonColor={theme.colors.primary}
+                                >
+                                    削除
+                                </Button>
                             </View>
                         ) : (
                             <View style={styles.imageButtonContainer}>
-                                <MaterialCommunityIcons
+                                {/* <MaterialCommunityIcons
                                     name="file-image-plus"
                                     size={20}
                                     color={theme.colors.primary}
                                     onPress={handlePickImage}
                                 />
-                                <Text>画像選択</Text>
+                                <Text>画像選択</Text> */}
+                                <Button
+                                    mode="contained"
+                                    onPress={handlePickImage}
+                                    buttonColor={theme.colors.primary}
+                                    icon="file-image-plus"
+                                    style={styles.imageButton}
+                                >
+                                    画像選択
+                                </Button>
                             </View>
                         )}
                     </View>
@@ -411,7 +431,7 @@ const styles = StyleSheet.create({
     },
     imageContainer: {
         alignItems: 'center',
-        marginVertical: 16
+        marginVertical: 8
     },
     imageButtonContainer: {
         width: "100%",
@@ -422,6 +442,9 @@ const styles = StyleSheet.create({
         borderColor: "#817f7f",
         borderStyle: "dashed"
     },
+    imageButton: {
+        width: "100%"
+    },
     selectedImageContainer: {
         width: "100%",
         alignItems: "center"
@@ -431,7 +454,8 @@ const styles = StyleSheet.create({
         height: 200,
         borderRadius: 8
     },
-    removeIcon: {
+    removeButton: {
+        width: "100%",
         marginTop: 8
     },
     divider: {

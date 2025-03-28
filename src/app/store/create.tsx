@@ -233,7 +233,7 @@ export default function StoreCreate() {
                 <HeaderAppBar
                     title="店舗情報登録"
                     showBackButton={true}
-                    rightAction={{ icon: "microphone", onPress: () => { } }}
+                // rightAction={{ icon: "microphone", onPress: () => { } }}
                 />
                 <ScrollView
                     style={styles.scrollContainer}

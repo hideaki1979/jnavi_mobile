@@ -144,35 +144,16 @@ export default function Map() {
 
 const styles = StyleSheet.create({
     container: {
+        flex: 1
+    },
+    mapContainer: {
         flex: 1,
         backgroundColor: '#fff',
         alignItems: 'center',
         justifyContent: 'center'
     },
-    mapContainer: {
-        flex: 1
-    },
     map: {
         width: Dimensions.get('window').width,
         height: '100%'
-    },
-    bottomBar: {
-        justifyContent: 'space-around'
-    },
-    calloutContainer: {
-        width: 300,
-        padding: 16
-    },
-    calloutTitle: {
-        fontSize: 14,
-        fontWeight: "bold",
-        marginBottom: 8
-    },
-    calloutDescription: {
-        marginBottom: 8
-    },
-    calloutAction: {
-        color: '#1976D2',
-        fontWeight: "bold"
     }
 })
