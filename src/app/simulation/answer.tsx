@@ -43,7 +43,7 @@ export default function Answer() {
                     onPress={handleNext}
                     style={styles.nextButton}
                 >
-                    次へ
+                    Mapへ
                 </Button>
             </View>
             {/* フッター */}

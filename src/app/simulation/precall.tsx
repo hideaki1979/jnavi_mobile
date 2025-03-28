@@ -141,7 +141,10 @@ export default function PreCall() {
                     <Button
                         mode="contained"
                         onPress={() => {
-                            router.push(`simulation/postcall/${id}`)
+                            router.push({
+                                pathname: `simulation/postcall`,
+                                params: { id }
+                            })
                         }}
                     >
                         コール無し
