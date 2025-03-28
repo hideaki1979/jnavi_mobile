@@ -1,4 +1,4 @@
-import { StoreImageUploadData } from "../types/storeImage"
+import { StoreImageDownloadData, StoreImageUploadData } from "../types/storeImage"
 import ApiClient from "./Apiclient"
 
 const api = ApiClient.getInstance()
@@ -25,10 +25,11 @@ export const uploadStoreImage = async (storeId: string | number, imageData: Stor
  * @param storeId 店舗ID
  * @returns 画像情報の配列
  */
-export const getStoreImages = async (storeId: number) => {
+export const getStoreImages = async (storeId: string): Promise<StoreImageDownloadData[]> => {
     try {
         const response = await api.get(`/stores/${storeId}/images`)
-        return response.data
+        // console.log("店舗画像情報：", response.data.data)
+        return response.data.data || []
     } catch (error) {
         throw ApiClient.handleError(
             error,

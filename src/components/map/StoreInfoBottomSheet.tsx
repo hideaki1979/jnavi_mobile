@@ -1,5 +1,5 @@
-import { Dimensions, View, Image, StyleSheet } from "react-native"
-import { Button, Card, IconButton, Modal, Paragraph, Portal, Title, useTheme } from "react-native-paper"
+import { Dimensions, View, StyleSheet } from "react-native"
+import { ActivityIndicator, Button, Card, IconButton, Modal, Paragraph, Portal, Title, useTheme } from "react-native-paper"
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { MapStore } from "@/src/types/storeApiResponse"
@@ -13,6 +13,9 @@ import image3 from "../../../public/images/20250103_123700.jpg"
 import image4 from "../../../public/images/8db1aafe-520f-4f66-aa99-4a42170425b7.jpg"
 import image5 from "../../../public/images/c63b37eea2cbf11eb5e269139bcdf451.jpg"
 import image6 from "../../../public/images/DSC03030-1.jpg"
+import { StoreImageDownloadData } from "@/src/types/storeImage"
+import { getStoreImages } from "@/src/api/ImageApi"
+import { Image as ExpoImage } from "expo-image"
 
 const { width, height } = Dimensions.get('window')
 
@@ -35,25 +38,57 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
     const [modalVisible, setModalVisible] = useState(false)
     const [selectedImage, setSelectedImage] = useState<string | null>(null)
     const [localImages, setLocalImages] = useState<string[]>([])
+    const [, setStoreImages] = useState<StoreImageDownloadData[]>([])
+    const [imageUrls, setImageUrls] = useState<string[]>([])
+    const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
-    // ローカル画像をURIに変換する（レイアウト確認暫定対応）
+    // 初期表示、店舗情報が変更された（map画面から店舗マーカークリック時）場合、店舗画像を取得
     useEffect(() => {
-        const loadLocalImages = async () => {
-            try {
-                const uriPromises = publicImages.map(async (img) => {
-                    const asset = Asset.fromModule(img)
-                    await asset.downloadAsync()
-                    return asset.uri
-                })
-                const imageUrls = await Promise.all(uriPromises)
-                setLocalImages(imageUrls)
-            } catch (error) {
-                console.error("画像読み込み失敗：", error)
-            }
+        if (store && store.id) {
+            getStoreImagesInfo(store.id)
         }
-        loadLocalImages()
-    }, [])
+    }, [store])
 
+    // APIから店舗画像を取得する。
+    const getStoreImagesInfo = async (storeId: string | number) => {
+        setIsLoading(true)
+        try {
+            const images = await getStoreImages(String(storeId))
+            setStoreImages(images)
+            if (images && images.length > 0) {
+                const urls = images.map((img) => img.image_url)
+                setImageUrls(urls)
+            } else {
+                setImageUrls([])
+                loadLocalImages()
+            }
+        } catch (error) {
+            console.error('店舗画像の取得に失敗しました:', error)
+            setError('画像の読み込みに失敗しました')
+            // エラー時もローカル画像を読み込む
+            loadLocalImages()
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    // ローカル画像をURIに変換する（APIから画像がない場合のフォールバック）
+    const loadLocalImages = async () => {
+        try {
+            const uriPromises = publicImages.map(async (img) => {
+                const asset = Asset.fromModule(img)
+                await asset.downloadAsync()
+                return asset.uri
+            })
+            const localImageUrls = await Promise.all(uriPromises)
+            setLocalImages(localImageUrls)
+        } catch (error) {
+            console.error("ローカル画像読み込み失敗：", error)
+        }
+    }
+
+    // モーダルで画像を開く
     const openImageModal = useCallback((imageUrl: string) => {
         setSelectedImage(imageUrl)
         setModalVisible(true)
@@ -94,7 +129,7 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
 
     // 表示する画像の配列を決定
     // APIから画像があればそれを表示し、なければローカル画像を表示
-    const displayImages = (store.images && store.images.length > 0) ? store.images : localImages
+    const displayImages = imageUrls.length > 0 ? imageUrls : localImages
 
     return (
         <>
@@ -124,8 +159,15 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
                         </Card.Content>
                         {/* 画像スライダー */}
                         {/* {store.images && store.images.length > 0 && ( */}
-                        {displayImages.length > 0 && (
-                            <BottomSheetView style={styles.imageContainer}>
+                        {/* {displayImages.length > 0 && ( */}
+                        <BottomSheetView style={styles.imageContainer}>
+                            {isLoading ? (
+                                <View style={styles.loadingContainer}>
+                                    <ActivityIndicator size="small" color={theme.colors.primary} />
+                                </View>
+                            ) : error ? (
+                                <Paragraph style={styles.errorText}>画像の読み込みに失敗しました。</Paragraph>
+                            ) : displayImages.length > 0 ? (
                                 <FlatList
                                     data={displayImages}
                                     horizontal
@@ -136,18 +178,22 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
                                     contentContainerStyle={{ paddingHorizontal: 8 }}
                                     renderItem={({ item }: { item: string }) => (
                                         <TouchableOpacity onPress={() => openImageModal(item)}>
-                                            <Image
+                                            <ExpoImage
                                                 source={{ uri: item }}
                                                 style={styles.storeImages}
-                                                resizeMode="cover"
+                                                contentFit="cover"
+                                                transition={300}
                                             />
                                         </TouchableOpacity>
                                     )}
                                     keyExtractor={(_: string, index: number) => index.toString()}
                                     style={styles.imageList}
                                 />
-                            </BottomSheetView>
-                        )}
+                            ) : (
+                                <Paragraph style={styles.noImageText}>店舗画像が登録されてません。</Paragraph>
+                            )}
+                        </BottomSheetView>
+                        {/* )} */}
                     </Card>
 
                     {/* 閉じるボタン */}
@@ -169,10 +215,11 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
                     contentContainerStyle={styles.modalContainer}
                 >
                     <View style={styles.modalContent}>
-                        <Image
+                        <ExpoImage
                             source={{ uri: selectedImage || '' }}
                             style={styles.modalImage}
-                            resizeMode="contain"
+                            contentFit="contain"
+                            transition={300}
                         />
                         <IconButton
                             icon="close"
@@ -203,18 +250,18 @@ const styles = StyleSheet.create({
         elevation: 0
     },
     storeName: {
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: "bold",
         marginBottom: 8,
         textDecorationLine: "underline"
     },
     storeAddress: {
-        fontSize: 12,
-        marginBottom: 16,
+        fontSize: 10,
+        marginBottom: 8,
         textDecorationLine: "underline"
     },
     imageContainer: {
-        marginBottom: 16,
+        marginBottom: 8,
         paddingHorizontal: 16,
         paddingTop: 8
     },
@@ -223,12 +270,26 @@ const styles = StyleSheet.create({
     },
     storeImages: {
         width: width * 0.6,
-        height: 150,
+        height: 120,
         borderRadius: 8,
         marginRight: 8
     },
+    loadingContainer: {
+        height: 120,
+        justifyContent: "center",
+        alignItems: "center"
+    },
+    errorText: {
+        textAlign: "center",
+        color: "red",
+        padding: 16
+    },
+    noImageText: {
+        textAlign: "center",
+        padding: 16
+    },
     closeButton: {
-        marginVertical: 16,
+        marginVertical: 8,
         marginHorizontal: 8,
         borderRadius: 8
     },
