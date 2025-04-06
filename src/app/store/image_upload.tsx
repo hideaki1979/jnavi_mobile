@@ -94,7 +94,7 @@ export default function ImageUpload() {
                     storeToppingCalls.formattedToppingOptions.map(([_, toppingOption]) => toppingOption)
 
                 setToppingOptions(toppingOptions)
-                // console.log("formattedOption：", JSON.stringify(formattedOption, null, 2))
+                // console.log("formattedOption：", JSON.stringify(toppingOptions, null, 2))
             } catch (error) {
                 console.error("トッピングコール情報取得エラー：", error)
                 setError("トッピングコール情報取得時にエラーが発生しました。")
@@ -260,7 +260,7 @@ export default function ImageUpload() {
                 storeToppingCallId
             }
         }))
-        // console.log("toppingId, optionId, storeToppingCallId：", toppingId, optionId, storeToppingCallId)
+        console.log("toppingId, optionId, storeToppingCallId：", toppingId, optionId, storeToppingCallId)
     }
 
     if (loading || dataLoading) {

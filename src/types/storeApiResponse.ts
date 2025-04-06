@@ -127,7 +127,7 @@ export interface SimulationToppingOption {
     options: {
         optionId: string | number;
         optionName: string;
-        store_topping_call_id?: string | number;
+        storeToppingCallId?: string | number;
     }[]
 }
 

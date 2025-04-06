@@ -34,7 +34,7 @@ const ImageUploadToppingSelector: React.FC<ImageUploadToppingSelectorProps> = ({
                             onOptionChange(
                                 String(toppingOption.toppingId),
                                 value,
-                                selectedOption?.store_topping_call_id?.toString()
+                                String(selectedOption?.storeToppingCallId)
                             )
                         }}
                         value={selectedOptions[toppingOption.toppingId]
