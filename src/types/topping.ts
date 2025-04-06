@@ -34,3 +34,34 @@ export interface CallOptionApiResponse {
     message: string;
 }
 
+
+/**
+ * 店舗登録画面初期表示用
+ * トッピングコールオプション情報取得APIレスポンスの型定義
+*/
+export interface ToppingData {
+    id: number;
+    topping_category: number;
+    topping_name: string;
+}
+
+export interface CallOptionData {
+    id: number;
+    call_category: number;
+    call_option_name: string;
+}
+
+export interface ResultToppingCall {
+    topping: ToppingData;
+    call_options: CallOptionData[];
+}
+
+export interface ResultToppingCallApiRes {
+    data: ResultToppingCall[];
+    status: string;
+    message: string;
+}
+
+export interface FormattedToppingOptionNames {
+    [topping_name: string]: string[];
+}

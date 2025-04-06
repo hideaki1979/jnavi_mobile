@@ -1,11 +1,10 @@
-import { CallOptionData, ToppingData } from "@/src/types/topping"
+import { ResultToppingCall } from "@/src/types/topping"
 import React from "react"
 import { Platform, StyleSheet, View } from "react-native"
 import { Checkbox, Text } from "react-native-paper"
 
 interface StoreRegisterToppingOptionSelectorProps {
-    toppings: ToppingData[];
-    toppingCategoryOptionsMap: Record<number, CallOptionData[]>;
+    toppingOptions: Record<number, ResultToppingCall>;
     selectedOptions: Record<number, number[]>;
     onOptionChange: (toppingId: number, optionId: number, isChecked: boolean) => void;
     callType: 'pre_call' | 'post_call';
@@ -17,41 +16,37 @@ interface StoreRegisterToppingOptionSelectorProps {
  * トッピングの種類ごとにコールオプションをチェックボックスで選択できるコンポーネント
  */
 const StoreRegisterToppingOptionSelector: React.FC<StoreRegisterToppingOptionSelectorProps> = ({
-    toppings,
-    toppingCategoryOptionsMap,
+    toppingOptions,
     selectedOptions,
     onOptionChange,
     callType
 }) => {
     return (
         <>
-            {toppings.map(topping => {
+            {Object.values(toppingOptions).map(({ topping, call_options }) => (
                 // トッピングカテゴリーに対応するコールオプションを取得
-                const toppingCallOptions = toppingCategoryOptionsMap[topping.topping_category] || []
-                return (
-                    <View key={`${callType}-${topping.id}`} style={styles.optionContainer}>
-                        <Text style={styles.optionLabel}>{topping.topping_name}</Text>
-                        <View style={styles.optionGrid}>
-                            {toppingCallOptions.map((option) => (
-                                <View key={option.id} style={styles.checkboxContainer}>
-                                    <Checkbox.Item
-                                        label={option.call_option_name}
-                                        status={selectedOptions[topping.id].includes(option.id) ? "checked" : "unchecked"}
-                                        onPress={() => onOptionChange(
-                                            topping.id,
-                                            option.id,
-                                            !selectedOptions[topping.id]?.includes(option.id)
-                                        )}
-                                        style={styles.checkboxItem}
-                                        labelStyle={styles.checkboxLabel}
-                                        mode={Platform.OS === "ios" ? "ios" : "android"}
-                                    />
-                                </View>
-                            ))}
-                        </View>
+                <View key={`${callType}-${topping.id}`} style={styles.optionContainer}>
+                    <Text style={styles.optionLabel}>{topping.topping_name}</Text>
+                    <View style={styles.optionGrid}>
+                        {call_options.map((option) => (
+                            <View key={option.id} style={styles.checkboxContainer}>
+                                <Checkbox.Item
+                                    label={option.call_option_name}
+                                    status={selectedOptions[topping.id].includes(option.id) ? "checked" : "unchecked"}
+                                    onPress={() => onOptionChange(
+                                        topping.id,
+                                        option.id,
+                                        !selectedOptions[topping.id]?.includes(option.id)
+                                    )}
+                                    style={styles.checkboxItem}
+                                    labelStyle={styles.checkboxLabel}
+                                    mode={Platform.OS === "ios" ? "ios" : "android"}
+                                />
+                            </View>
+                        ))}
                     </View>
-                )
-            })}
+                </View>
+            ))}
         </>
     )
 }

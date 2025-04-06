@@ -39,9 +39,9 @@ export const handleSpeech = (
         let currentIndex = 0
 
         const options = {
-            language: "ja-JP",
+            language: "ja",
             pitch: 1.0,
-            rate: 0.8,
+            rate: 0.7,
             /**
              * 読み上げ完了時に呼び出される。
              *  1. 現在のインデックスをインクリメント
@@ -59,7 +59,17 @@ export const handleSpeech = (
                     setIsSpeaking(false)
                 }
             },
-            onError: () => setIsSpeaking(false)
+            onError: (error: Error) => {
+                // 詳細なエラー情報をログに出力
+                console.log('読み上げエラー詳細：', {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack
+                })
+
+                // エラー発生時は状態をリセット
+                setIsSpeaking(false)
+            }
         }
 
         // 最初のセグメントから読み始める
@@ -70,11 +80,21 @@ export const handleSpeech = (
         }
     } else {
         const options = {
-            language: "ja-JP",
+            language: "ja",
             pitch: 1.0,
-            rate: 1.0,
+            rate: 0.8,
             onDone: () => setIsSpeaking(false),
-            onError: () => setIsSpeaking(false)
+            onError: (error: Error) => {
+                // 詳細なエラー情報をログに出力
+                console.log('読み上げエラー詳細：', {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack
+                })
+
+                // エラー発生時は状態をリセット
+                setIsSpeaking(false)
+            }
         }
         Speech.speak(text, options)
     }

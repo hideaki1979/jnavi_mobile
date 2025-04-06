@@ -1,4 +1,5 @@
 import { BaseToppingCall } from "./store"
+import { FormattedToppingOptionNames } from "./topping"
 
 // トッピング情報の型定義
 export interface StoreToppingCall extends BaseToppingCall {
@@ -20,7 +21,7 @@ export interface StoreToppingCall extends BaseToppingCall {
 }
 
 /**
- * 店舗登録画面、店舗詳細画面の型定義（店舗情報+店舗別トッピングコール情報）
+ * 店舗登録画面の型定義（店舗情報+店舗別トッピングコール情報）
  */
 export interface ApiStoreData {
     id: string | number;
@@ -95,7 +96,7 @@ export interface MapApiResponse {
     data: MapData[];
 }
 
-// シミュレーション用の店舗データ（食券購入で店舗全件取得）
+// シミュレーション用の店舗データ（食券購入で店舗全件取得：getStoresAll）
 export interface SimulationSelectStoresData {
     id: string | number;
     store_name: string;
@@ -107,15 +108,53 @@ export interface SimulationSelectStoresApiRes {
     message: string;
 }
 
-// シミュレーション用の店舗データ（事前トッピング／着丼前トッピング）
+// シミュレーション・画像画面用の店舗データ（事前トッピング／着丼前トッピング：getStoreToppingCalls）
 export interface SimulationSelectToppingCallsData {
     store_id: string | number;
     store_name: string;
     branch_name?: string | null;
-    store_topping_calls?: BaseToppingCall[];
+    formattedToppingOptions?: [number, SimulationToppingOption][];
 }
 export interface SimulationSelectToppingCallsApiRes {
     data: SimulationSelectToppingCallsData;
+    status: string;
+    message: string;
+}
+
+export interface SimulationToppingOption {
+    toppingId: string | number;
+    toppingName: string;
+    options: {
+        optionId: string | number;
+        optionName: string;
+        store_topping_call_id?: string | number;
+    }[]
+}
+
+// （店舗詳細画面用）整形済店舗・トッピングコール情報（getStoreById）
+export interface FormattedToppingOptionNameStoreData {
+    // StoreDataの店舗別トッピングコール情報以外の全プロパティ
+    id: number;
+    store_name: string;
+    branch_name?: string | null;
+    address: string;
+    business_hours: string;
+    regular_holidays: string;
+    prior_meal_voucher: boolean;
+    topping_details?: string | null;
+    call_details?: string | null;
+    is_all_increased: boolean;
+    is_lot: boolean;
+    lot_detail?: string | null;
+
+    // （トッピング・オプション）整形済名称リスト
+    preCallFormatted: FormattedToppingOptionNames;
+    postCallFormatted: FormattedToppingOptionNames;
+}
+
+// （店舗詳細画面用）整形済店舗・トッピングコールAPIレスポンス情報（getStoreById）
+export interface FormattedToppingOptionNameStoreDataApiRes {
+    data: FormattedToppingOptionNameStoreData;
     status: string;
     message: string;
 }

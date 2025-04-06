@@ -1,11 +1,9 @@
-import { formatToppingOptions, ToppingOption } from "@/src/utils/toppingFormatter"
 import { router, useLocalSearchParams } from "expo-router"
 import { useEffect, useState } from "react"
 import { Button, Divider, RadioButton, Snackbar, Text, TextInput, useTheme } from "react-native-paper"
 import * as ImagePicker from "expo-image-picker"
 import { SaveFormat, ImageManipulator } from "expo-image-manipulator"
 import { getStoreToppingCalls } from "@/src/api/storeApi"
-import { getCallOptions, getToppings } from "@/src/api/toppingApi"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { StatusBar } from "expo-status-bar"
 import HeaderAppBar from "@/src/components/navigation/HeaderAppBar"
@@ -16,6 +14,7 @@ import LoadingErrorContainer from "@/src/components/feedback/LoadingErrorContain
 import { SelectedToppingInfo, StoreImageUploadData } from "@/src/types/storeImage"
 import { uploadStoreImage } from "@/src/api/ImageApi"
 import ImageUploadToppingSelector from "@/src/components/store/ImageUploadToppingSelector"
+import { SimulationToppingOption } from "@/src/types/storeApiResponse"
 
 // メニュータイプの定義
 const MENU_TYPES = [
@@ -41,7 +40,7 @@ export default function ImageUpload() {
     const [isSuccess, setIsSuccess] = useState<boolean>(false)
 
     // 店舗別トッピングオプションとユーザ選択の状態管理
-    const [toppingOptions, setToppingOptions] = useState<ToppingOption[]>([])
+    const [toppingOptions, setToppingOptions] = useState<SimulationToppingOption[]>([])
     // const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({})
 
     const [selectedToppingInfo, setSelectedToppingInfo] = useState<Record<string, SelectedToppingInfo>>({})
@@ -80,26 +79,22 @@ export default function ImageUpload() {
         const fetchToppingData = async () => {
             try {
                 // トッピング情報を取得
-                const [storeToppingCalls, toppings, callOptions] =
-                    await Promise.all([
-                        getStoreToppingCalls(id, "all"),
-                        getToppings(),
-                        getCallOptions()
-                    ])
+                const storeToppingCalls =
+                    await getStoreToppingCalls(id, "all")
 
                 // 店舗別トッピングコール情報が無ければ何もせずリターン
-                if (storeToppingCalls.store_topping_calls && storeToppingCalls.store_topping_calls.length > 0) {
-                    const formattedOption = formatToppingOptions(
-                        storeToppingCalls.store_topping_calls,
-                        toppings,
-                        callOptions,
-                        'all',
-                        true // store_topping_call_idも含めるオプション
-                    )
-                    setToppingOptions(formattedOption)
-                    // console.log("formattedOption：", JSON.stringify(formattedOption, null, 2))
+                if (!storeToppingCalls.formattedToppingOptions || storeToppingCalls.formattedToppingOptions.length === 0) {
+                    setDataLoading(false)
+                    return
                 }
 
+                // MAPからオプションの配列を抽出する
+                const toppingOptions =
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    storeToppingCalls.formattedToppingOptions.map(([_, toppingOption]) => toppingOption)
+
+                setToppingOptions(toppingOptions)
+                // console.log("formattedOption：", JSON.stringify(formattedOption, null, 2))
             } catch (error) {
                 console.error("トッピングコール情報取得エラー：", error)
                 setError("トッピングコール情報取得時にエラーが発生しました。")
@@ -258,11 +253,6 @@ export default function ImageUpload() {
      * @param optionId オプションID
      */
     const handleOptionChange = (toppingId: string, optionId: string, storeToppingCallId?: string) => {
-        // setSelectedOptions(prev => ({
-        //     ...prev,
-        //     [toppingId]: optionId
-        // }))
-
         setSelectedToppingInfo(prev => ({
             ...prev,
             [toppingId]: {
@@ -319,13 +309,6 @@ export default function ImageUpload() {
                             </View>
                         ) : (
                             <View style={styles.imageButtonContainer}>
-                                {/* <MaterialCommunityIcons
-                                    name="file-image-plus"
-                                    size={20}
-                                    color={theme.colors.primary}
-                                    onPress={handlePickImage}
-                                />
-                                <Text>画像選択</Text> */}
                                 <Button
                                     mode="contained"
                                     onPress={handlePickImage}

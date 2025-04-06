@@ -8,12 +8,12 @@ import postCallImageSource from '../../../public/images/jiro_counter2_manga_fina
 import HeaderAppBar from "@/src/components/navigation/HeaderAppBar"
 import BottomAppBar from "@/src/components/navigation/BottomAppBar"
 import { getStoreToppingCalls } from "@/src/api/storeApi"
-import { getCallOptions, getToppings } from "@/src/api/toppingApi"
 import LoadingErrorContainer from "@/src/components/feedback/LoadingErrorContainer"
 import { StatusBar } from "expo-status-bar"
-import { formatToppingOptions, generateCallText, ToppingOption } from "@/src/utils/toppingFormatter"
+import { generateCallText } from "@/src/utils/toppingFormatter"
 import ToppingOptionSelector from "@/src/components/store/ToppingOptionSelector"
 import ErrorSnackbar from "@/src/components/feedback/ErrorSnackbar"
+import { SimulationToppingOption } from "@/src/types/storeApiResponse"
 
 /**
  * @description
@@ -34,7 +34,7 @@ export default function PostCall() {
     const [snackBarVisible, setSnackBarVisible] = useState<boolean>(false)
 
     // 店舗別コールトッピング情報、ユーザーのラジオ選択状態を管理
-    const [postcallOptions, setPostcallOptions] = useState<ToppingOption[]>([])
+    const [postcallOptions, setPostcallOptions] = useState<SimulationToppingOption[]>([])
     const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({})
 
     // APIからコールトッピング情報を取得
@@ -42,22 +42,18 @@ export default function PostCall() {
         const fetchStoreCallToppingData = async () => {
             try {
                 // 店舗情報・トッピングコール情報を並列で取得する。(IDは暫定で固定)
-                const [storeRes, toppingRes, callOptionRes] = await Promise.all([
-                    getStoreToppingCalls(id, "post_call"),
-                    getToppings(),
-                    getCallOptions()
-                ])
+                const storeRes = await getStoreToppingCalls(id, "post_call")
 
                 // データがない場合は早期リターン
-                if (!storeRes.store_topping_calls || storeRes.store_topping_calls.length === 0) {
+                if (!storeRes.formattedToppingOptions || storeRes.formattedToppingOptions.length === 0) {
                     setLoading(false)
                     return
                 }
 
-                // トッピングデータがある場合は整形する
-                // 例：[{"toppingId":3,"toppingName":"アブラ","options":[{"optionId":"4","optionName":"抜き"},{"optionId":"5","optionName":"少なめ"}]},{"toppingId":4,"toppingName":"カラメ","options":[{"optionId":"4","optionName":"抜き"},{"optionId":"5","optionName":"少なめ"}]},{"toppingId":5,"toppingName":"麺の硬さ","options":[{"optionId":"2","optionName":"硬め"},{"optionId":"3","optionName":"カタカタ"}]},{"toppingId":6,"toppingName":"麺量","options":[{"optionId":"9","optionName":"半分"},{"optionId":"10","optionName":"少なめ"}]}]
-                const formattedOptions = formatToppingOptions(storeRes.store_topping_calls, toppingRes, callOptionRes, "post_call")
-                setPostcallOptions(formattedOptions)
+                // MAPからオプションの配列を抽出
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const toppingOptions = storeRes.formattedToppingOptions.map(([_, toppingOption]) => toppingOption)
+                setPostcallOptions(toppingOptions)
 
             } catch (error) {
                 console.log("店舗情報取得エラー：", error)
@@ -141,13 +137,13 @@ export default function PostCall() {
                         mode="contained"
                         onPress={() => { router.push(`simulation/afterfinish`) }}
                     >
-                        トッピング無し
+                        コール無し
                     </Button>
                     <Button
                         mode="contained"
                         onPress={handleCallOption}
                     >
-                        トッピング有り
+                        コール有り
                     </Button>
                 </View>
             </ScrollView>

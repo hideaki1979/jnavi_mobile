@@ -33,6 +33,13 @@ const Tickets: Ticket[] = [
     { id: 6, menu_name: '大W豚入り', price: 900 }
 ]
 
+/**
+ * コールシミュレーションの券売機画面
+ * 
+ * 店舗選択、メニュー選択を行う画面
+ * 
+ * @returns コールシミュレーションの券売機画面
+ */
 export default function TicketMachine() {
 
     const theme = useTheme()
@@ -45,6 +52,13 @@ export default function TicketMachine() {
 
 
     useEffect(() => {
+        /**
+         * 店舗情報を取得し、ドロップダウンメニュー用の配列に整形する
+         * 
+         * APIから店舗情報を取得し、ドロップダウンメニュー表示用のデータを整形
+         * 
+         * @throws {Error} APIから店舗情報を取得できなかった場合
+         */
         const fetchStoresData = async () => {
             try {
                 const storesData = await getStoresAll()
@@ -63,6 +77,12 @@ export default function TicketMachine() {
         fetchStoresData()
     }, [])
 
+    /**
+     * チケット選択ボタン押下時
+     * 
+     * 店舗選択がある場合は、コールシミュレーションの事前コール画面に遷移
+     * 店舗選択がない場合は、エラーメッセージを表示
+     */
     const handlePressTicket = () => {
         if (!selectedShop) {
             setError("店舗を選択してください")
@@ -79,6 +99,14 @@ export default function TicketMachine() {
         return <LoadingErrorContainer loading={loading} error={null} />
     }
 
+    /**
+     * ドロップダウンメニューの項目を描画する
+     * 
+     * 各店舗情報をテキストとして表示するコンポーネントを返す
+     * 
+     * @param {ShopItem} item - 店舗情報のアイテム
+     * @returns {JSX.Element} ドロップダウンメニューの項目
+     */
     const renderItem = (item: ShopItem) => {
         return (
             <View style={styles.dropdownItem}>
@@ -91,6 +119,11 @@ export default function TicketMachine() {
         )
     }
 
+    /**
+     * 左側アイコンの描画
+     * 
+     * ラーメンノードルのアイコンを描画
+     */
     const renderLeftIcon = () => {
         return (
             <MaterialCommunityIcons

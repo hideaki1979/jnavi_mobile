@@ -10,16 +10,16 @@ import { router } from "expo-router"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { StatusBar } from "expo-status-bar"
 import { createStore } from "@/src/api/storeApi"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { StoreData } from "@/src/types/store"
 import { StoreApiResponse } from "@/src/types/storeApiResponse"
 import HeaderAppBar from "@/src/components/navigation/HeaderAppBar"
-import { CallOptionData, ToppingData } from "@/src/types/topping"
-import { getCallOptions, getToppings } from "@/src/api/toppingApi"
+import { ResultToppingCall } from "@/src/types/topping"
 import LoadingErrorContainer from "@/src/components/feedback/LoadingErrorContainer"
 import { FontAwesome6 } from "@expo/vector-icons"
 import { generateToppingCalls } from "@/src/utils/toppingFormatter"
 import StoreRegisterToppingOptionSelector from "@/src/components/store/StoreRegisterToppingOptionSelector"
+import { getToppingCallOptions } from "@/src/api/toppingApi"
 
 /**
  * 店舗情報登録画面コンポーネント
@@ -51,8 +51,7 @@ export default function StoreCreate() {
     const [snackbarError, setSnackbarError] = useState(false)
 
     // トッピングとコールオプションのデータ管理
-    const [toppings, setToppings] = useState<ToppingData[]>([])
-    const [callOptions, setCallOptions] = useState<CallOptionData[]>([])
+    const [toppingOptionData, setToppingOptionData] = useState<Record<number, ResultToppingCall>>({})
     const [isLoading, setIsLoading] = useState(true)
     const [loadError, setLoadError] = useState<string | null>(null)
 
@@ -68,19 +67,17 @@ export default function StoreCreate() {
     useEffect(() => {
         const fetchToppingCallOptions = async () => {
             try {
-                // // トッピング情報とコールオプション情報を並列で取得
-                const [toppingResponse, callOptionResponse] =
-                    await Promise.all([
-                        getToppings(), getCallOptions()
-                    ])
-                setToppings(toppingResponse)
-                setCallOptions(callOptionResponse)
+                // トッピング情報とコールオプション情報を取得
+                const response = await getToppingCallOptions()
+                const toppingOptions: Record<number, ResultToppingCall> = response
+                setToppingOptionData(toppingOptions)
 
                 // 選択状態の初期化（事前・着丼前）
                 const initSelectedOptions: Record<number, number[]> = {}
-                toppingResponse.forEach(topping => {
-                    initSelectedOptions[topping.id] = []
+                Object.keys(toppingOptions).forEach(key => {
+                    initSelectedOptions[Number(key)] = []
                 })
+                // console.log("初期選択オプション：", JSON.stringify(initSelectedOptions, null, 2))
                 setSelectedPreCallOptions({ ...initSelectedOptions })
                 setSelectedPostCallOptions({ ...initSelectedOptions })
 
@@ -180,33 +177,6 @@ export default function StoreCreate() {
             return prev
         })
     }
-
-    // トッピングカテゴリー別コールオプションのマップをメモ化
-    const toppingCategoryOptionsMap = useMemo(() => {
-        const map: Record<number, CallOptionData[]> = {}
-
-        // 各トッピングカテゴリーに対応するコールオプションを事前に計算
-        if (toppings.length > 0 && callOptions.length > 0) {
-            // トッピングの種類ごとに結果をマップに保存する
-            toppings.forEach(topping => {
-                const categoryId = topping.topping_category
-
-                // カテゴリが登録されていない場合のみ処理
-                if (!map[categoryId]) {
-                    // そのカテゴリに対応するコールオプションをフィルタリング
-                    const optionForCategory = callOptions.filter(option =>
-                        option.call_category === categoryId
-                    )
-                    // 結果をマップに保存
-                    map[categoryId] = optionForCategory
-                }
-                console.log("MAP保存情報：", map)
-            })
-        }
-        console.log("マップ全体情報：", map)
-        // 作成したマップを返す
-        return map
-    }, [toppings, callOptions]) // トッピングがコールオプションが変更時のみ再計算
 
     // データ読み込み中の表示
     if (isLoading) {
@@ -392,8 +362,7 @@ export default function StoreCreate() {
                         style={styles.accordion}
                     >
                         <StoreRegisterToppingOptionSelector
-                            toppings={toppings}
-                            toppingCategoryOptionsMap={toppingCategoryOptionsMap}
+                            toppingOptions={toppingOptionData}
                             selectedOptions={selectedPreCallOptions}
                             onOptionChange={(toppingId, optionId, isChecked) =>
                                 handleCheckboxChange(toppingId, optionId, isChecked, 'pre_call')
@@ -418,8 +387,7 @@ export default function StoreCreate() {
                         style={styles.accordion}
                     >
                         <StoreRegisterToppingOptionSelector
-                            toppings={toppings}
-                            toppingCategoryOptionsMap={toppingCategoryOptionsMap}
+                            toppingOptions={toppingOptionData}
                             selectedOptions={selectedPostCallOptions}
                             onOptionChange={(toppingId, optionId, isChecked) =>
                                 handleCheckboxChange(toppingId, optionId, isChecked, 'post_call')

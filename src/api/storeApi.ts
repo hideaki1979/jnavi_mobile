@@ -1,15 +1,15 @@
 import ApiClient from "./Apiclient"
 import { StoreData } from "../types/store"
 import {
-    ApiStoreData,
     MapApiResponse,
     MapData,
     StoreApiResponse,
-    StoreGetApiResponse,
     SimulationSelectStoresData,
     SimulationSelectStoresApiRes,
     SimulationSelectToppingCallsApiRes,
-    SimulationSelectToppingCallsData
+    SimulationSelectToppingCallsData,
+    FormattedToppingOptionNameStoreDataApiRes,
+    FormattedToppingOptionNameStoreData
 } from "../types/storeApiResponse"
 
 const api = ApiClient.getInstance()
@@ -24,7 +24,7 @@ export const createStore = async (
 ): Promise<StoreApiResponse> => {
     try {
         const response = await api.post(`/stores`, storeData)
-        console.log("店舗情報登録返却データ：", response.data)
+        // console.log("店舗情報登録返却データ：", response.data)
         return response.data
     } catch (error) {
         throw ApiClient.handleError(
@@ -39,24 +39,10 @@ export const createStore = async (
  * @param id 取得する店舗ID
  * @returns 取得した店舗データ
  */
-export const getStoreById = async (id: string): Promise<ApiStoreData> => {
+export const getStoreById = async (id: string): Promise<FormattedToppingOptionNameStoreData> => {
     try {
-        const response = await api.get<StoreGetApiResponse>(`/stores/${id}`)
+        const response = await api.get<FormattedToppingOptionNameStoreDataApiRes>(`/stores/${id}`)
         const data = response.data.data
-        // メインの店舗データのIDをNumber型に変換
-        data.id = Number(data.id)
-        // store_topping_callsの各要素を処理
-        if (data.store_topping_calls && Array.isArray(data.store_topping_calls)) {
-            data.store_topping_calls = data.store_topping_calls.map((item) => {
-                // store_topping_callsの各IDをNumber型に変換
-                item.store_id = Number(item.store_id)
-                item.topping_id = Number(item.topping_id)
-                item.call_option_id = Number(item.call_option_id)
-                item.noodle_type_id = Number(item.noodle_type_id)
-
-                return item
-            })
-        }
         return data
     } catch (error) {
         throw ApiClient.handleError(

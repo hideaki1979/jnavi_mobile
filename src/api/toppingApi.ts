@@ -1,7 +1,9 @@
 import {
     ToppingApiResponse, CallOptionApiResponse,
     ToppingData,
-    CallOptionData
+    CallOptionData,
+    ResultToppingCallApiRes,
+    ResultToppingCall
 } from "../types/topping"
 import ApiClient from "./Apiclient"
 
@@ -41,5 +43,14 @@ export const getCallOptions = async (): Promise<CallOptionData[]> => {
         return callOptionArray
     } catch (error) {
         throw ApiClient.handleError(error, "コールオプション情報取得時にエラーが発生しました。")
+    }
+}
+
+export const getToppingCallOptions = async (): Promise<ResultToppingCall[]> => {
+    try {
+        const response = await api.get<ResultToppingCallApiRes>(`/toppings/calloptions`)
+        return response.data.data
+    } catch (error) {
+        throw ApiClient.handleError(error, "トッピング・コールオプション情報取得時にエラーが発生しました。")
     }
 }

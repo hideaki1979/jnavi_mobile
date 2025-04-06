@@ -1,10 +1,10 @@
-import { ToppingOption } from "@/src/utils/toppingFormatter"
+import { SimulationToppingOption } from "@/src/types/storeApiResponse"
 import React from "react"
 import { StyleSheet, View } from "react-native"
 import { RadioButton, Text } from "react-native-paper"
 
 interface ToppingOptionSelectorProps {
-    options: ToppingOption[];
+    options: SimulationToppingOption[];
     selectedOptions: Record<string, string>
     onOptionChange: (toppingId: string, optionId: string) => void;
 }

@@ -1,4 +1,4 @@
-import { FormattedOptions } from "@/src/utils/toppingFormatter"
+import { FormattedToppingOptionNames } from "@/src/types/topping"
 import React from "react"
 import { StyleSheet, View } from "react-native"
 import { Chip, List, Text } from "react-native-paper"
@@ -7,7 +7,7 @@ interface ToppingOptionsAccordionProps {
     title: string;
     expanded: boolean;
     onPress: () => void;
-    options: FormattedOptions;
+    options: FormattedToppingOptionNames;
     leftIcon: React.ReactNode;
 
 }

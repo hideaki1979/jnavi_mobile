@@ -1,11 +1,11 @@
+import { SimulationToppingOption } from "@/src/types/storeApiResponse"
 import { SelectedToppingInfo } from "@/src/types/storeImage"
-import { ToppingOption } from "@/src/utils/toppingFormatter"
 import { StyleSheet, View } from "react-native"
 import { RadioButton, Text } from "react-native-paper"
 
 
 interface ImageUploadToppingSelectorProps {
-    options: ToppingOption[];
+    options: SimulationToppingOption[];
     selectedOptions: Record<string, SelectedToppingInfo>;
     onOptionChange: (toppingId: string, optionId: string, storeToppingCallId?: string) => void;
 }
@@ -34,7 +34,7 @@ const ImageUploadToppingSelector: React.FC<ImageUploadToppingSelectorProps> = ({
                             onOptionChange(
                                 String(toppingOption.toppingId),
                                 value,
-                                selectedOption?.store_topping_call_id
+                                selectedOption?.store_topping_call_id?.toString()
                             )
                         }}
                         value={selectedOptions[toppingOption.toppingId]
@@ -42,9 +42,9 @@ const ImageUploadToppingSelector: React.FC<ImageUploadToppingSelectorProps> = ({
                             : ""}
                     >
                         <View style={styles.radioItemGrid}>
-                            {toppingOption.options.map((option) => (
+                            {toppingOption.options.map((option, index) => (
                                 <RadioButton.Item
-                                    key={option.optionId}
+                                    key={`${option.optionId}-${index}`}
                                     label={option.optionName}
                                     value={String(option.optionId)}
                                     labelVariant="labelLarge"

@@ -9,11 +9,11 @@ import HeaderAppBar from "@/src/components/navigation/HeaderAppBar"
 import BottomAppBar from "@/src/components/navigation/BottomAppBar"
 import { StatusBar } from "expo-status-bar"
 import { getStoreToppingCalls } from "@/src/api/storeApi"
-import { getCallOptions, getToppings } from "@/src/api/toppingApi"
 import LoadingErrorContainer from "@/src/components/feedback/LoadingErrorContainer"
-import { formatToppingOptions, generateCallText, ToppingOption } from "@/src/utils/toppingFormatter"
+import { generateCallText } from "@/src/utils/toppingFormatter"
 import ToppingOptionSelector from "@/src/components/store/ToppingOptionSelector"
 import ErrorSnackbar from "@/src/components/feedback/ErrorSnackbar"
+import { SimulationToppingOption } from "@/src/types/storeApiResponse"
 
 /**
  * @description
@@ -34,33 +34,27 @@ export default function PreCall() {
     const [snackBarVisible, setSnackBarVisible] = useState<boolean>(false)
 
     // 店舗別コールトッピング情報、ユーザーの選択状態を管理
-    const [preCallOptions, setPreCallOptions] = useState<ToppingOption[]>([])
+    const [preCallOptions, setPreCallOptions] = useState<SimulationToppingOption[]>([])
     const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({})
 
     // APIから店舗＋トッピングオプションデータ取得
     useEffect(() => {
         const fetchStoreData = async () => {
             try {
-                // 店舗情報とコールトッピング情報を並列で取得
-                const [storeRes, toppingRes, callOptionRes] =
-                    await Promise.all([
-                        getStoreToppingCalls(id, "pre_call"),
-                        getToppings(),
-                        getCallOptions()
-                    ])
+                // 店舗情報とコールトッピング情報（データ整形済）を取得
+                const storeRes = await getStoreToppingCalls(id, "pre_call")
 
                 // データがない場合は早期リターン
-                if (!storeRes.store_topping_calls || storeRes.store_topping_calls.length === 0) {
+                if (!storeRes.formattedToppingOptions || storeRes.formattedToppingOptions.length === 0) {
                     setLoading(false)
                     return
                 }
                 // console.log("店舗情報＆トッピングコール情報取得：", JSON.stringify(storeRes, null, 2))
-                // console.log("トッピング情報：", JSON.stringify(toppingRes, null, 2))
-                // console.log("コールオプション情報：", JSON.stringify(callOptionRes, null, 2))
 
-                // 店舗の事前コールオプションを整形
-                const formattedOptions = formatToppingOptions(storeRes.store_topping_calls, toppingRes, callOptionRes, "pre_call")
-                setPreCallOptions(formattedOptions)
+                // MAPからオプションの配列を抽出
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const toppingOptions = storeRes.formattedToppingOptions.map(([_, toppingOption]) => toppingOption)
+                setPreCallOptions(toppingOptions)
             } catch (error) {
                 console.error("店舗情報＆トッピングコール情報取得エラー：", error)
                 setError(error instanceof Error ? error.message : "店舗情報＆トッピングコール情報取得時にエラーが発生しました。")
@@ -124,7 +118,7 @@ export default function PreCall() {
                 </Card>
                 <Text style={styles.description}>
                     行列に並んでいると、店員さんから{'\n'}
-                    食券を見せてください」と言われました。{'\n'}
+                    「食券を見せてください」と言われました。{'\n'}
                     食券を見せると同時に、{'\n'}
                     事前コールしたいオプションを選択しましょう。
                 </Text>
@@ -142,7 +136,7 @@ export default function PreCall() {
                         mode="contained"
                         onPress={() => {
                             router.push({
-                                pathname: `simulation/postcall`,
+                                pathname: "simulation/postcall",
                                 params: { id }
                             })
                         }}
@@ -195,8 +189,5 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-evenly",
         marginVertical: 16
-    },
-    bottomBar: {
-        justifyContent: "space-evenly"
     }
 })

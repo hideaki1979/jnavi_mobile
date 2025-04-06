@@ -6,12 +6,10 @@ import { getStoreById } from '@/src/api/storeApi'
 import { FontAwesome6, MaterialCommunityIcons } from "@expo/vector-icons"
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { StatusBar } from 'expo-status-bar'
-import { ApiStoreData } from '@/src/types/storeApiResponse'
+import { FormattedToppingOptionNameStoreData } from '@/src/types/storeApiResponse'
 import LoadingErrorContainer from '@/src/components/feedback/LoadingErrorContainer'
 import HeaderAppBar from '@/src/components/navigation/HeaderAppBar'
-import { CallOptionData, ToppingData } from '@/src/types/topping'
-import { getCallOptions, getToppings } from '@/src/api/toppingApi'
-import { createFormattedOptions } from '@/src/utils/toppingFormatter'
+import { FormattedToppingOptionNames } from '@/src/types/topping'
 import ToppingOptionsAccordion from '@/src/components/store/ToppingOptionsAccordion'
 
 /**
@@ -20,27 +18,19 @@ import ToppingOptionsAccordion from '@/src/components/store/ToppingOptionsAccord
  * 登録された店舗情報の詳細表示を行う画面
  * @returns 店舗詳細表示コンポーネント
  */
-
-// 整形されたトッピングオプションの型定義
-interface FormattedOptions {
-    [toppingName: string]: string[] // トッピング名をキーにして、対応するコールオプション名の配列を格納
-}
-
 export default function StoreDetails() {
     const theme = useTheme()
     const { id } = useLocalSearchParams<{ id: string }>()
 
     // 店舗データと各種マスタデータの状態管理
-    const [storeData, setStoreData] = useState<ApiStoreData | null>(null)
-    const [, setToppings] = useState<ToppingData[]>([])
-    const [, setCallOptions] = useState<CallOptionData[]>([])
+    const [storeData, setStoreData] = useState<FormattedToppingOptionNameStoreData | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [snackBarVisible, setSnackBarVisible] = useState(false)
 
     // 表示用に整形されたデータの状態
-    const [formattedPreOptions, setFormattedPreOptions] = useState<FormattedOptions>({})
-    const [formattedPostOptions, setFormattedPostOptions] = useState<FormattedOptions>({})
+    const [formattedPreOptions, setFormattedPreOptions] = useState<FormattedToppingOptionNames>({})
+    const [formattedPostOptions, setFormattedPostOptions] = useState<FormattedToppingOptionNames>({})
 
     // アコーディオンの展開状態管理
     const [preExpanded, setPreExpanded] = useState<boolean>(true)
@@ -58,32 +48,17 @@ export default function StoreDetails() {
          */
         const fetchStoreToppingCallData = async () => {
             try {
-                // 店舗情報とコールトッピング情報を並列で取得
-                const [storeRes, toppingRes, callOptionRes] =
-                    await Promise.all([
-                        getStoreById(id),
-                        getToppings(),
-                        getCallOptions()
-                    ])
-
+                // 店舗情報を取得（整形済みトッピング情報を含む）
+                const storeRes = await getStoreById(id)
                 // console.log("店舗情報取得データ：", JSON.stringify(storeRes, null, 2))
 
                 // 状態管理の更新
                 setStoreData(storeRes)
-                setToppings(toppingRes)
-                setCallOptions(callOptionRes)
-
-                // トッピングデータがある場合は整形する
-                // 例：{ "ニンニク": ["抜き", "少なめ", "マシ"], "野菜": ["ちょいマシ", "マシ", "マシマシ"] }
-                // （麺の硬さ）["硬め", "カタカタ"]
-                // （麺量）["半分", "少なめ"]
-                if (storeRes.store_topping_calls && storeRes.store_topping_calls.length > 0) {
-                    const { preCallFormatted, postCallFormatted } =
-                        createFormattedOptions(storeRes.store_topping_calls, toppingRes, callOptionRes)
-                    // 状態を更新
-                    setFormattedPreOptions(preCallFormatted)
-                    setFormattedPostOptions(postCallFormatted)
-                }
+                // APIから直接整形済みデータを使用
+                setFormattedPreOptions(storeRes.preCallFormatted)
+                setFormattedPostOptions(storeRes.postCallFormatted)
+                // console.log("preCallFormatted：", JSON.stringify(storeRes.preCallFormatted, null, 2))
+                // console.log("postCallFormatted：", JSON.stringify(storeRes.postCallFormatted, null, 2))
 
             } catch (err) {
                 console.error("店舗情報取得処理エラー：", err)
