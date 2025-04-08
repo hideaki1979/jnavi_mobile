@@ -28,7 +28,7 @@ export const uploadStoreImage = async (storeId: string | number, imageData: Stor
 export const getStoreImages = async (storeId: string): Promise<StoreImageDownloadData[]> => {
     try {
         const response = await api.get(`/stores/${storeId}/images`)
-        // console.log("店舗画像情報：", response.data.data)
+        // console.log("店舗画像情報：", JSON.stringify(response.data.data, null, 2))
         return response.data.data || []
     } catch (error) {
         throw ApiClient.handleError(
