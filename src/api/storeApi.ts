@@ -43,6 +43,7 @@ export const getStoreById = async (id: string): Promise<FormattedToppingOptionNa
     try {
         const response = await api.get<FormattedToppingOptionNameStoreDataApiRes>(`/stores/${id}`)
         const data = response.data.data
+        // console.log("店舗ID検索結果：", JSON.stringify(data, null, 2))
         return data
     } catch (error) {
         throw ApiClient.handleError(
@@ -128,6 +129,18 @@ export const getStoreToppingCalls = async (id: string, callTiming: string): Prom
         throw ApiClient.handleError(
             error,
             "店舗情報・店舗別コールトッピング（事前／着丼前）情報取得時に予期せぬエラーが発生しました"
+        )
+    }
+}
+
+export const updateStore = async (id: string, storeData: StoreData): Promise<StoreApiResponse> => {
+    try {
+        const response = await api.put(`/stores/${id}`, storeData)
+        return response.data
+    } catch (error) {
+        throw ApiClient.handleError(
+            error,
+            "店舗情報、店舗別コールトッピング更新時に予期せぬエラーが発生しました"
         )
     }
 }

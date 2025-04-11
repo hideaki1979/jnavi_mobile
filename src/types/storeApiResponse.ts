@@ -1,5 +1,5 @@
 import { BaseToppingCall } from "./store"
-import { FormattedToppingOptionNames } from "./topping"
+import { FormattedToppingOptionIds, FormattedToppingOptionNames } from "./topping"
 
 // トッピング情報の型定義
 export interface StoreToppingCall extends BaseToppingCall {
@@ -56,17 +56,7 @@ export interface StoreApiResponse {
             created_at: string;
             updated_at: string;
         }
-    }
-    message: string;
-    status: string;
-}
-
-/**
- * 店舗詳細画面APIレスポンスの型定義
- * （サーバから正式に返ってくる値（stores、ステータス、メッセージ））
- */
-export interface StoreGetApiResponse {
-    data: ApiStoreData;
+    };
     message: string;
     status: string;
 }
@@ -150,6 +140,10 @@ export interface FormattedToppingOptionNameStoreData {
     // （トッピング・オプション）整形済名称リスト
     preCallFormatted: FormattedToppingOptionNames;
     postCallFormatted: FormattedToppingOptionNames;
+
+    // （トッピング・オプション）整形済IDリスト
+    preCallFormattedIds: FormattedToppingOptionIds;
+    postCallFormattedIds: FormattedToppingOptionIds;
 }
 
 // （店舗詳細画面用）整形済店舗・トッピングコールAPIレスポンス情報（getStoreById）

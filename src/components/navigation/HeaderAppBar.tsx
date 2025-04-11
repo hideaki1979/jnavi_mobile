@@ -1,15 +1,17 @@
 import { router } from "expo-router"
 import { Appbar } from "react-native-paper"
 
+type ActionItem = {
+    icon: string;
+    onPress: () => void;
+    size?: number;
+}
+
 type HeaderAppBarProps = {
     title: string;
     showBackButton?: boolean;
     titleStyle?: object;
-    rightAction?: {
-        icon: string
-        onPress: () => void
-        size?: number
-    };
+    rightAction?: ActionItem | ActionItem[];
 }
 
 /**
@@ -29,11 +31,25 @@ export default function HeaderAppBar({
                 titleStyle={titleStyle || { fontSize: 16, fontWeight: "bold" }}
             />
             {rightAction && (
-                <Appbar.Action
-                    icon={rightAction.icon}
-                    size={rightAction.size || 24}
-                    onPress={rightAction.onPress}
-                />
+                Array.isArray(rightAction) ? (
+                    // 複数のアクションを配置する場合は、マップで各アクションを表示
+                    rightAction.map((action, index) => (
+                        <Appbar.Action
+                            key={index}
+                            icon={action.icon}
+                            size={action.size || 24}
+                            onPress={action.onPress}
+                        />
+                    ))
+                )
+                    : (
+                        // 単一アクションの場合は、そのまま表示
+                        <Appbar.Action
+                            icon={rightAction.icon}
+                            size={rightAction.size || 24}
+                            onPress={rightAction.onPress}
+                        />
+                    )
             )}
         </Appbar.Header>
     )

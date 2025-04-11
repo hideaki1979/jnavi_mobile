@@ -6,10 +6,10 @@ import {
     List
 } from "react-native-paper"
 import { useForm, Controller } from "react-hook-form"
-import { router } from "expo-router"
+import { router, useLocalSearchParams } from "expo-router"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { StatusBar } from "expo-status-bar"
-import { createStore } from "@/src/api/storeApi"
+import { getStoreById, updateStore } from "@/src/api/storeApi"
 import { useEffect, useState } from "react"
 import { StoreData } from "@/src/types/store"
 import { StoreApiResponse } from "@/src/types/storeApiResponse"
@@ -22,15 +22,15 @@ import StoreRegisterToppingOptionSelector from "@/src/components/store/StoreRegi
 import { getToppingCallOptions } from "@/src/api/toppingApi"
 
 /**
- * 店舗情報登録画面コンポーネント
+ * 店舗情報更新画面コンポーネント
  * 
- * 新規店舗情報の入力と登録を行う画面
+ * 新規店舗情報の入力と更新を行う画面
  * React Hook Formを使用してフォーム入力を管理
  * @returns 店舗情報登録フォームコンポーネント
  */
-export default function StoreCreate() {
+export default function StoreUpdate() {
     // フォームの状態管理 (React Hook Form)
-    const { control, handleSubmit, formState: { isSubmitting } } = useForm<StoreData>({
+    const { control, handleSubmit, formState: { isSubmitting }, reset } = useForm<StoreData>({
         defaultValues: {
             // デフォルト値を設定
             store_name: "",
@@ -44,6 +44,7 @@ export default function StoreCreate() {
             topping_details: "",
             call_details: "",
             lot_detail: ""
+
         },
         mode: "onBlur"  // フォーカスが外れた時にバリデーションを実行
     })
@@ -60,14 +61,17 @@ export default function StoreCreate() {
     const [loadError, setLoadError] = useState<string | null>(null)
 
     // 選択したコールオプションを状態管理（事前用・着丼前用）
-    const [selectedPreCallOptions, setSelectedPreCallOptions] = useState<FormattedToppingOptionIds>([])
-    const [selectedPostCallOptions, setSelectedPostCallOptions] = useState<FormattedToppingOptionIds>([])
+    const [selectedPreCallOptions, setSelectedPreCallOptions] = useState<FormattedToppingOptionIds>({})
+    const [selectedPostCallOptions, setSelectedPostCallOptions] = useState<FormattedToppingOptionIds>({})
 
     // アコーディオンの展開状態管理
     const [preCallExpanded, setPreCallExpanded] = useState<boolean>(true)
     const [postCallExpanded, setPostCallExpanded] = useState<boolean>(true)
 
-    // 初期ロード時にトッピング情報・コールオプション情報を取得
+    // ルートパラメータから店舗IDを取得
+    const { id } = useLocalSearchParams<{ id: string }>()
+
+    // 初期ロード時にトッピングコール情報を取得する。
     useEffect(() => {
         const fetchToppingCallOptions = async () => {
             try {
@@ -75,15 +79,6 @@ export default function StoreCreate() {
                 const response = await getToppingCallOptions()
                 const toppingOptions: Record<number, ResultToppingCall> = response
                 setToppingOptionData(toppingOptions)
-
-                // 選択状態の初期化（事前・着丼前）
-                const initSelectedOptions: FormattedToppingOptionIds = {}
-                Object.keys(toppingOptions).forEach(key => {
-                    initSelectedOptions[Number(key)] = []
-                })
-                // console.log("初期選択オプション：", JSON.stringify(initSelectedOptions, null, 2))
-                setSelectedPreCallOptions({ ...initSelectedOptions })
-                setSelectedPostCallOptions({ ...initSelectedOptions })
 
             } catch (error) {
                 console.error('トッピング・コールオプション情報取得エラー：', error)
@@ -94,6 +89,45 @@ export default function StoreCreate() {
         }
         fetchToppingCallOptions()
     }, [])
+
+    // 初期ロード時に店舗情報・店舗別トッピングコール情報を取得する。
+    useEffect(() => {
+        const fetchStoreData = async () => {
+            try {
+                const storeData = await getStoreById(id)
+
+                // フォームの初期値を設定
+                reset({
+                    store_name: storeData.store_name,
+                    branch_name: storeData.branch_name || undefined,
+                    address: storeData.address,
+                    business_hours: storeData.business_hours,
+                    regular_holidays: storeData.regular_holidays,
+                    prior_meal_voucher: storeData.prior_meal_voucher,
+                    is_all_increased: storeData.is_all_increased,
+                    is_lot: storeData.is_lot,
+                    topping_details: storeData.topping_details || undefined,
+                    call_details: storeData.call_details || undefined,
+                    lot_detail: storeData.lot_detail || undefined
+                })
+
+                const preToppingCalls: FormattedToppingOptionIds = storeData.preCallFormattedIds || {}
+                const postToppingCalls: FormattedToppingOptionIds = storeData.postCallFormattedIds || {}
+
+                // console.log("preToppingCalls", JSON.stringify(preToppingCalls, null, 2))
+                // console.log("postToppingCalls", JSON.stringify(postToppingCalls, null, 2))
+
+                setSelectedPreCallOptions(preToppingCalls)
+                setSelectedPostCallOptions(postToppingCalls)
+
+
+            } catch (error) {
+                console.error("店舗情報取得エラー：", error)
+                setLoadError("店舗情報取得処理に失敗しました。")
+            }
+        }
+        fetchStoreData()
+    }, [id, reset])
 
     /**
      * フォーム送信時の処理
@@ -117,7 +151,7 @@ export default function StoreCreate() {
             // console.log("送信データ情報", submitData)   // デバッグ用ログ出力
 
             // APIを使用して店舗情報を登録
-            const response: StoreApiResponse = await createStore(submitData)
+            const response: StoreApiResponse = await updateStore(id, submitData)
             // console.log("店舗登録レスポンス情報：", JSON.stringify(response, null, 2))
             // 成功メッセージを表示
             setSnackbarMessage(response.message)
@@ -205,7 +239,7 @@ export default function StoreCreate() {
             >
                 {/* 画面上部のナビゲーションバー */}
                 <HeaderAppBar
-                    title="店舗情報登録"
+                    title="店舗情報更新"
                     showBackButton={true}
                 // rightAction={{ icon: "microphone", onPress: () => { } }}
                 />
@@ -494,7 +528,7 @@ export default function StoreCreate() {
                         disabled={isSubmitting}
                         loading={isSubmitting}
                     >
-                        登録
+                        更新
                     </Button>
                 </ScrollView>
                 <Snackbar

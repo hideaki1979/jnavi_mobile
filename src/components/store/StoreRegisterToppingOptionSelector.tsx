@@ -17,7 +17,7 @@ interface StoreRegisterToppingOptionSelectorProps {
  */
 const StoreRegisterToppingOptionSelector: React.FC<StoreRegisterToppingOptionSelectorProps> = ({
     toppingOptions,
-    selectedOptions,
+    selectedOptions = {},
     onOptionChange,
     callType
 }) => {
@@ -32,11 +32,11 @@ const StoreRegisterToppingOptionSelector: React.FC<StoreRegisterToppingOptionSel
                             <View key={option.id} style={styles.checkboxContainer}>
                                 <Checkbox.Item
                                     label={option.call_option_name}
-                                    status={selectedOptions[topping.id].includes(option.id) ? "checked" : "unchecked"}
+                                    status={(selectedOptions[topping.id] || []).includes(option.id) ? "checked" : "unchecked"}
                                     onPress={() => onOptionChange(
                                         topping.id,
                                         option.id,
-                                        !selectedOptions[topping.id]?.includes(option.id)
+                                        !(selectedOptions[topping.id] || [])?.includes(option.id)
                                     )}
                                     style={styles.checkboxItem}
                                     labelStyle={styles.checkboxLabel}

@@ -18,6 +18,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
             }
         }
     },
+    ios: {
+        ...config.ios?.config,
+        bundleIdentifier: "com.syumeikyo.jNavi",
+        config: {
+            googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? "YOUR_FALLBACK_KEY"
+        }
+    },
     extra: {
         ...config.extra,
         apiUrl: process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000"

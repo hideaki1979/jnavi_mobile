@@ -90,17 +90,33 @@ export default function StoreDetails() {
             <HeaderAppBar
                 showBackButton={true}
                 title='店舗情報詳細'
-                rightAction={{
+                rightAction={[{
+                    icon: 'map',
+                    onPress: () => {
+                        router.push({
+                            pathname: `/store/map`
+                        })
+                    }
+                },
+                {
                     icon: 'image',
                     onPress: () => {
                         router.push({
                             pathname: `/store/image_upload`,
                             params: { id: String(storeData.id) }
-                        }
-                        )
-
+                        })
                     }
-                }}
+                },
+                {
+                    icon: 'pencil',
+                    onPress: () => {
+                        router.push({
+                            pathname: `/store/update`,
+                            params: { id: String(storeData.id) }
+                        })
+                    }
+                }
+                ]}
             />
             <ScrollView style={styles.container}>
                 <Surface style={styles.surface} elevation={2}>

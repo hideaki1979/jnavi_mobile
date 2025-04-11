@@ -15,7 +15,7 @@ type BottomAppBarProps = {
  */
 export default function BottomAppBar({ showRoutes = [] }: BottomAppBarProps) {
 
-    // ルートが非活性かを判定する
+    // 親コンポーネントから指定されたルートを表示する。
     const shouldShowRoute = (route: RouteType) => showRoutes.includes(route)
 
     return (
@@ -37,7 +37,7 @@ export default function BottomAppBar({ showRoutes = [] }: BottomAppBarProps) {
                     <View style={styles.appMenu}>
                         <Appbar.Action
                             icon="home"
-                            onPress={() => { router.push('test/detail_res_test') }}
+                            onPress={() => { router.push('test/maptest') }}
                         />
                         <Text style={styles.appText}>home</Text>
                     </View>

@@ -65,3 +65,8 @@ export interface ResultToppingCallApiRes {
 export interface FormattedToppingOptionNames {
     [topping_name: string]: string[];
 }
+
+// トッピング・コールID（店舗更新画面用）
+export interface FormattedToppingOptionIds {
+    [topping_id: number]: number[];
+}

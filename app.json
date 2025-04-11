@@ -20,9 +20,6 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "このアプリでは、地図上で現在位置を表示するために位置情報を使用します。"
-      },
-      "config": {
-        "googleMapsApiKey": "AIzaSyCgq9tyJWnjgm0qPKeWmGzCenlTbrq7Tr8"
       }
     },
     "android": {
@@ -31,11 +28,6 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.syumeikyo.jNavi",
-      "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyCgq9tyJWnjgm0qPKeWmGzCenlTbrq7Tr8"
-        }
-      },
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"

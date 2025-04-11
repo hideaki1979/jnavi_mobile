@@ -111,6 +111,7 @@ export default function Map() {
                     style={styles.map}
                     region={initialRegion || undefined}
                     showsUserLocation={true}
+                    provider='google'
                 >
                     {markers.map((marker) => (
                         <Marker
