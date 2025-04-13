@@ -1,8 +1,8 @@
-import { ScrollView, StyleSheet, View } from 'react-native'
-import { Text, useTheme, Surface, Divider, Snackbar, List } from 'react-native-paper'
+import { Alert, ScrollView, StyleSheet, View } from 'react-native'
+import { Text, useTheme, Surface, Divider, Snackbar, List, Button } from 'react-native-paper'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { getStoreById } from '@/src/api/storeApi'
+import { getStoreById, storeClose } from '@/src/api/storeApi'
 import { FontAwesome6, MaterialCommunityIcons } from "@expo/vector-icons"
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { StatusBar } from 'expo-status-bar'
@@ -12,11 +12,15 @@ import HeaderAppBar from '@/src/components/navigation/HeaderAppBar'
 import { FormattedToppingOptionNames } from '@/src/types/topping'
 import ToppingOptionsAccordion from '@/src/components/store/ToppingOptionsAccordion'
 
+
 /**
- * 店舗詳細画面コンポーネント
+ * 店舗情報詳細画面コンポーネント
  * 
- * 登録された店舗情報の詳細表示を行う画面
- * @returns 店舗詳細表示コンポーネント
+ * 店舗情報と各種マスタデータを並列で取得し状態管理を更新
+ * 店舗情報には、トッピング情報、コールオプション情報、ロット情報などを含む
+ * トッピング情報がある場合は、店舗情報に含まれるコールトッピング情報を整形して状態管理に反映
+ * 
+ * @throws {Error} APIから取得したデータの整形中にエラーが発生した場合
  */
 export default function StoreDetails() {
     const theme = useTheme()
@@ -27,6 +31,7 @@ export default function StoreDetails() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [snackBarVisible, setSnackBarVisible] = useState(false)
+    const [message, setMessage] = useState<string | null>(null)
 
     // 表示用に整形されたデータの状態
     const [formattedPreOptions, setFormattedPreOptions] = useState<FormattedToppingOptionNames>({})
@@ -70,6 +75,51 @@ export default function StoreDetails() {
         }
         fetchStoreToppingCallData()
     }, [id])
+
+    /**
+     * 店舗の閉店処理を行うアラートダイアログを表示
+     * 
+     * 店舗の閉店処理を行うアラートダイアログを表示
+     * 「閉店」というボタンを押すとAPIで閉店処理を実施
+     * 成功メッセージを表示して、3秒後にMAP画面に遷移
+     * エラーが発生した場合はエラーメッセージを表示
+     */
+    const handleCloseStore = () => {
+        Alert.alert(
+            "閉店処理の確認",
+            `「${storeData?.store_name}${storeData?.branch_name}」を閉店にしますが、宜しいですか？`,
+            [
+                {
+                    text: "キャンセル",
+                    style: "cancel"
+                },
+                {
+                    text: "閉店",
+                    style: "destructive",
+                    onPress: async () => {
+                        // APIで閉店処理を実施
+                        try {
+                            const result = await storeClose(id, storeData?.store_name)
+                            // 成功メッセージ
+                            setMessage(result.message)
+                            setSnackBarVisible(true)
+
+                            // 3秒後にMAP画面に遷移する
+                            setTimeout(() => {
+                                router.push({
+                                    pathname: `/store/map`
+                                })
+                            }, 3000)
+                        } catch (error) {
+                            console.error("閉店処理エラー：", error)
+                            setError(error instanceof Error ? error.message : "閉店処理でエラーが発生しました。")
+                            setSnackBarVisible(true)
+                        }
+                    }
+                }
+            ]
+        )
+    }
 
     // ローディング表示
     if (loading) {
@@ -312,6 +362,21 @@ export default function StoreDetails() {
                             </View>
                         )}
                     </View>
+                    <View style={styles.section}>
+                        <Text style={[styles.dangerText, { color: theme.colors.error }]}>
+                            閉店した場合、閉店ボタンを押下してください。
+                        </Text>
+                        <Button
+                            mode='contained'
+                            buttonColor={theme.colors.error}
+                            textColor='white'
+                            icon='store-off'
+                            onPress={handleCloseStore}
+                            style={styles.closeButton}
+                        >
+                            閉店
+                        </Button>
+                    </View>
                 </Surface>
             </ScrollView>
             <Snackbar
@@ -320,7 +385,7 @@ export default function StoreDetails() {
                 duration={3000}
                 style={{ backgroundColor: error ? theme.colors.error : theme.colors.primary }}
             >
-                {error}
+                {error ? error : message}
             </Snackbar>
         </SafeAreaView>
     )
@@ -397,5 +462,12 @@ const styles = StyleSheet.create({
     detailText: {
         paddingLeft: 28,
         lineHeight: 20
+    },
+    dangerText: {
+        marginBottom: 16,
+        textAlign: "center"
+    },
+    closeButton: {
+        marginVertical: 8
     }
 })

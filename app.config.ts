@@ -7,7 +7,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ...config,
     name: config.name ?? "jNavi",
     slug: config.slug ?? "jNavi",
-    scheme: config.slug ?? "jnavi",
+    scheme: config.scheme ?? "jnavi",
     android: {
         ...config.android,
         // 既に app.json に記載がある場合も上書きしないようにする
@@ -20,7 +20,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
     ios: {
         ...config.ios?.config,
-        bundleIdentifier: "com.syumeikyo.jNavi",
+        bundleIdentifier: config.ios.bundleIdentifier,
         config: {
             googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? "YOUR_FALLBACK_KEY"
         }

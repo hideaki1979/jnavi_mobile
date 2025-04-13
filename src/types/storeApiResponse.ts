@@ -39,6 +39,7 @@ export interface ApiStoreData {
     created_at?: string;
     updated_at?: string;
     store_topping_calls?: StoreToppingCall[];
+    is_close?: boolean;
 }
 
 /**
@@ -68,7 +69,8 @@ export interface MapStore {
     store_name: string;
     branch_name?: string | null;
     address: string;
-    images?: string[] | null
+    images?: string[] | null;
+    is_close?: boolean;
 }
 
 // マップ＋店舗情報（MAP画面用）
@@ -136,6 +138,7 @@ export interface FormattedToppingOptionNameStoreData {
     is_all_increased: boolean;
     is_lot: boolean;
     lot_detail?: string | null;
+    is_close?: boolean;
 
     // （トッピング・オプション）整形済名称リスト
     preCallFormatted: FormattedToppingOptionNames;
@@ -149,6 +152,12 @@ export interface FormattedToppingOptionNameStoreData {
 // （店舗詳細画面用）整形済店舗・トッピングコールAPIレスポンス情報（getStoreById）
 export interface FormattedToppingOptionNameStoreDataApiRes {
     data: FormattedToppingOptionNameStoreData;
+    status: string;
+    message: string;
+}
+
+export interface StoreCloseApiRes {
+    data: boolean;
     status: string;
     message: string;
 }

@@ -11,6 +11,23 @@ import BottomAppBar from '@/src/components/navigation/BottomAppBar'
 import LoadingErrorContainer from '@/src/components/feedback/LoadingErrorContainer'
 import StoreInfoBottomSheet from '@/src/components/map/StoreInfoBottomSheet'
 
+/**
+ * Mapコンポーネントは、現在位置とマーカーを表示する地図をレンダリングします。
+ * 
+ * 機能:
+ * - 現在地情報の取得と表示
+ * - APIから取得した複数のマーカーを地図上に表示
+ * - マーカーをタップすると店舗情報のボトムシートを表示
+ * - 位置情報の取得エラー時にデフォルトの位置を設定
+ * 
+ * ステート:
+ * - markers: マップに表示するマーカーの配列
+ * - initialRegion: 地図の初期表示位置
+ * - loading: データ取得中かどうかの状態
+ * - selectedStore: 選択されたマーカーの店舗情報
+ * - isBottomSheetVisible: ボトムシートの表示状態
+ */
+
 export default function Map() {
     const theme = useTheme()
     const [markers, setMarkers] = useState<MapData[]>([])
@@ -72,6 +89,7 @@ export default function Map() {
         const fetchMapData = async () => {
             try {
                 const data = await getMapAll()
+                // console.log("MapData：", JSON.stringify(data, null, 2))
                 if (data) {
                     setMarkers(data)
                 }
@@ -120,7 +138,7 @@ export default function Map() {
                                 latitude: marker.latitude,
                                 longitude: marker.longitude
                             }}
-                            pinColor='orange'
+                            pinColor={marker.store.is_close ? 'red' : 'yellow'}
                             onPress={(e) => {
                                 e.stopPropagation()
                                 handlerMarkerPress(marker.store)

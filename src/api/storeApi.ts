@@ -9,7 +9,8 @@ import {
     SimulationSelectToppingCallsApiRes,
     SimulationSelectToppingCallsData,
     FormattedToppingOptionNameStoreDataApiRes,
-    FormattedToppingOptionNameStoreData
+    FormattedToppingOptionNameStoreData,
+    StoreCloseApiRes
 } from "../types/storeApiResponse"
 
 const api = ApiClient.getInstance()
@@ -70,7 +71,8 @@ export const getMapAll = async (): Promise<MapData[]> => {
                 id: Number(item.store.id),
                 store_name: item.store.store_name,
                 branch_name: item.store.branch_name,
-                address: item.store.address
+                address: item.store.address,
+                is_close: item.store.is_close
             }
         }))
         // console.log("型変換後Mapデータ：", mapDataArray)
@@ -141,6 +143,28 @@ export const updateStore = async (id: string, storeData: StoreData): Promise<Sto
         throw ApiClient.handleError(
             error,
             "店舗情報、店舗別コールトッピング更新時に予期せぬエラーが発生しました"
+        )
+    }
+}
+
+/**
+ * 店舗の閉店処理を行うAPI関数
+ * @param id 閉店する店舗のID
+ * @param storeName 閉店する店舗の店舗名（指定されていない場合は空文字列）
+ * @returns 閉店結果のAPIレスポンス
+ * @throws 店舗閉店処理でエラーが発生した場合
+ */
+export const storeClose = async (id: string, storeName: string | undefined): Promise<StoreCloseApiRes> => {
+    try {
+        const response = await api.patch(`/stores/${id}/close`, {
+            storeName: storeName
+        })
+        return response.data
+
+    } catch (error) {
+        throw ApiClient.handleError(
+            error,
+            "店舗閉店処理でエラーが発生しました。"
         )
     }
 }
