@@ -156,7 +156,7 @@ export default function Map() {
             </View>
 
             {/* フッター (Appbar) */}
-            <BottomAppBar showRoutes={['create', 'simulation', 'home']} />
+            <BottomAppBar showRoutes={['create', 'simulation', 'account', 'test']} />
         </SafeAreaView>
     )
 }

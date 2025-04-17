@@ -16,14 +16,16 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
             googleMaps: {
                 apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? "YOUR_FALLBACK_KEY"
             }
-        }
+        },
+        googleServicesFile: "./google-services.json"
     },
     ios: {
         ...config.ios?.config,
-        bundleIdentifier: config.ios.bundleIdentifier,
+        bundleIdentifier: config.ios?.bundleIdentifier,
         config: {
             googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? "YOUR_FALLBACK_KEY"
-        }
+        },
+        googleServicesFile: "./GoogleService-Info.plist"
     },
     extra: {
         ...config.extra,
@@ -34,6 +36,17 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
             "expo-router",
             {
                 root: "./src/app"
+            }
+        ],
+        "@react-native-firebase/app",
+        "@react-native-firebase/auth",
+        "@react-native-google-signin/google-signin",
+        [
+            "expo-build-properties",
+            {
+                ios: {
+                    useFrameworks: "static"
+                }
             }
         ]
     ]

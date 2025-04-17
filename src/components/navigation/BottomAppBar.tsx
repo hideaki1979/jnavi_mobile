@@ -2,8 +2,9 @@ import { router } from "expo-router"
 import { StyleSheet } from "react-native"
 import { Appbar, Text } from "react-native-paper"
 import { View } from "react-native"
+import { useAuth } from "@/src/app/context/AuthProvider"
 
-type RouteType = 'map' | 'home' | 'create' | 'simulation' | 'account'
+type RouteType = 'map' | 'home' | 'create' | 'simulation' | 'account' | 'test'
 
 type BottomAppBarProps = {
     // 特定のルートを表示したい場合に使用する（複数指定可能）
@@ -17,6 +18,8 @@ export default function BottomAppBar({ showRoutes = [] }: BottomAppBarProps) {
 
     // 親コンポーネントから指定されたルートを表示する。
     const shouldShowRoute = (route: RouteType) => showRoutes.includes(route)
+
+    const { signOut } = useAuth()
 
     return (
         <Appbar style={styles.appBar}>
@@ -37,7 +40,7 @@ export default function BottomAppBar({ showRoutes = [] }: BottomAppBarProps) {
                     <View style={styles.appMenu}>
                         <Appbar.Action
                             icon="home"
-                            onPress={() => { router.push('test/maptest') }}
+                            onPress={() => { router.push('auth/signup') }}
                         />
                         <Text style={styles.appText}>home</Text>
                     </View>
@@ -73,12 +76,27 @@ export default function BottomAppBar({ showRoutes = [] }: BottomAppBarProps) {
                     <View style={styles.appMenu}>
                         <Appbar.Action
                             icon="account"
-                            onPress={() => { }}
+                            onPress={() => { router.push('auth/signup') }}
                         />
                         <Text style={styles.appText}>account</Text>
                     </View>
                 </>
             )}
+
+            {shouldShowRoute('test') && (
+                <>
+                    <View style={styles.appMenu}>
+                        <Appbar.Action
+                            icon="logout"
+                            onPress={async () => {
+                                await signOut()
+                            }}
+                        />
+                        <Text style={styles.appText}>logout</Text>
+                    </View>
+                </>
+            )}
+
         </Appbar>
     )
 }

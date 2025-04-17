@@ -4,6 +4,7 @@ import { PaperProvider } from 'react-native-paper'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import lightTheme, { darkTheme } from '../styles/theme'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { AuthProvider } from './context/AuthProvider'
 
 const Layout = () => {
     // システムの色設定を取得（ダークモード対応の場合）
@@ -14,11 +15,13 @@ const Layout = () => {
 
     return (
         <GestureHandlerRootView style={styles.container}>
-            <SafeAreaProvider>
-                <PaperProvider theme={theme}>
-                    <Stack screenOptions={{ headerShown: false }} />
-                </PaperProvider>
-            </SafeAreaProvider>
+            <AuthProvider>
+                <SafeAreaProvider>
+                    <PaperProvider theme={theme}>
+                        <Stack screenOptions={{ headerShown: false }} />
+                    </PaperProvider>
+                </SafeAreaProvider>
+            </AuthProvider>
         </GestureHandlerRootView>
     )
 }

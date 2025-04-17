@@ -162,7 +162,7 @@ export default function StoreCreate() {
         setSelectedOptions((prev) => {
             const currentOptions = [...(prev[toppingId] || [])]
 
-            console.log("チェックボックス状態：", currentOptions)
+            // console.log("チェックボックス状態：", currentOptions)
             if (isChecked) {
                 // オプション追加
                 if (!currentOptions.includes(optionId)) {

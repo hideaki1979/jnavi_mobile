@@ -154,7 +154,7 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
 
                     {/* 閉じるボタン */}
                     <Button
-                        mode="outlined"
+                        mode="contained"
                         onPress={handleCloseSheet}
                         style={styles.closeButton}
                         icon="close"

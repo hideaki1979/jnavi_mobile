@@ -48,3 +48,8 @@ yarn-error.*
 android/
 ios/
 
+# iOS Firebase
+GoogleService-Info.plist
+
+# Android Firebase
+google-services.json
