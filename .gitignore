@@ -50,6 +50,8 @@ ios/
 
 # iOS Firebase
 GoogleService-Info.plist
+GoogleService-Info-base64.txt
 
 # Android Firebase
 google-services.json
+google-services-base64.txt
