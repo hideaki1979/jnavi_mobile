@@ -96,11 +96,12 @@ const Signup = () => {
     const onGoogleSignup = async () => {
         try {
             setLoading(true)
-            // Google認証の初期設定
-            GoogleSignin.configure({
-                webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-                iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID
-            })
+
+            // 既存のGoogleセッションをチェックして強制的にクリア
+            const isGoogleSignIn = await GoogleSignin.hasPreviousSignIn()
+            if (isGoogleSignIn) {
+                await GoogleSignin.signOut()
+            }
             // Google認証サインアップ
             await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true })
             console.log('PlayServices確認完了')
@@ -109,7 +110,7 @@ const Signup = () => {
             const idToken = signinResult.data?.idToken
 
             if (!idToken) {
-                throw new Error('IDトークンがありません')
+                throw new Error('Google認証トークンIDがありません')
             }
             console.log('IDトークン取得完了')
 

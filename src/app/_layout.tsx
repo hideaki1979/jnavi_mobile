@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import lightTheme, { darkTheme } from '../styles/theme'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { AuthProvider } from './context/AuthProvider'
+import '@/src/config/google'
 
 const Layout = () => {
     // システムの色設定を取得（ダークモード対応の場合）

@@ -1,6 +1,7 @@
 import { firebaseAuth } from "@/src/config/firebase"
 import { User, AuthContextType } from "@/src/types/user"
 import { FirebaseAuthTypes, onAuthStateChanged } from "@react-native-firebase/auth"
+import { GoogleSignin } from "@react-native-google-signin/google-signin"
 import { router } from "expo-router"
 import { createContext, ReactNode, useContext, useEffect, useState } from "react"
 
@@ -24,6 +25,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // サインアウト処理
     const signOut = async () => {
         try {
+            await GoogleSignin.signOut()
             await firebaseAuth.signOut()
             // router.replace('auth/signin')
             router.replace('store/map')
