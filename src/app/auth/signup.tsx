@@ -96,7 +96,6 @@ const Signup = () => {
     const onGoogleSignup = async () => {
         try {
             setLoading(true)
-
             // 既存のGoogleセッションをチェックして強制的にクリア
             const isGoogleSignIn = GoogleSignin.hasPreviousSignIn()
             if (isGoogleSignIn) {
@@ -130,7 +129,7 @@ const Signup = () => {
             console.error('Google認証サインアップエラー：', error)
             Alert.alert(
                 'Google認証サインアップエラー',
-                `Google認証サインアップ失敗： ${JSON.stringify(error, null, 2)}`,
+                `Google認証サインアップ失敗： ${error}`,
                 [{ text: 'OK' }]
             )
         } finally {
