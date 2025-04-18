@@ -98,31 +98,24 @@ const Signup = () => {
             setLoading(true)
 
             // 既存のGoogleセッションをチェックして強制的にクリア
-            const isGoogleSignIn = await GoogleSignin.hasPreviousSignIn()
+            const isGoogleSignIn = GoogleSignin.hasPreviousSignIn()
             if (isGoogleSignIn) {
                 await GoogleSignin.signOut()
             }
             // Google認証サインアップ
             await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true })
-            console.log('PlayServices確認完了')
             const signinResult = await GoogleSignin.signIn()
-            console.log('Googleサインイン完了', signinResult)
             const idToken = signinResult.data?.idToken
 
             if (!idToken) {
                 throw new Error('Google認証トークンIDがありません')
             }
-            console.log('IDトークン取得完了')
-
             // Firebaseクレデンシャル作成
             const googleCredential = GoogleAuthProvider.credential(idToken)
-            console.log('Googleクレデンシャル作成完了')
 
             // Firebase認証
             const userCredential = await firebaseAuth.signInWithCredential(googleCredential)
-            console.log('Firebase認証完了')
             const user = userCredential.user
-            console.log('ユーザー情報取得完了', user.uid)
 
             await createUser({
                 uid: user.uid,
@@ -131,14 +124,13 @@ const Signup = () => {
                 authProvider: 'google'
             })
 
-            console.log('Google認証でのユーザー登録成功しました！')
             router.replace('store/map')
 
         } catch (error) {
             console.error('Google認証サインアップエラー：', error)
             Alert.alert(
                 'Google認証サインアップエラー',
-                'Googleアカウント認証でのサインアップに失敗しました。',
+                `Google認証サインアップ失敗： ${JSON.stringify(error, null, 2)}`,
                 [{ text: 'OK' }]
             )
         } finally {
