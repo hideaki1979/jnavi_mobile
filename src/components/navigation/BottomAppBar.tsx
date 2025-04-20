@@ -3,8 +3,7 @@ import { StyleSheet } from "react-native"
 import { Appbar, Text } from "react-native-paper"
 import { View } from "react-native"
 import { useAuth } from "@/src/app/context/AuthProvider"
-
-type RouteType = 'map' | 'home' | 'create' | 'simulation' | 'account' | 'test'
+import { type RouteType } from "@/src/types/routeType"
 
 type BottomAppBarProps = {
     // 特定のルートを表示したい場合に使用する（複数指定可能）
@@ -40,7 +39,7 @@ export default function BottomAppBar({ showRoutes = [] }: BottomAppBarProps) {
                     <View style={styles.appMenu}>
                         <Appbar.Action
                             icon="home"
-                            onPress={() => { router.push('auth/signup') }}
+                            onPress={() => { router.push('test/maptest') }}
                         />
                         <Text style={styles.appText}>home</Text>
                     </View>
@@ -76,14 +75,14 @@ export default function BottomAppBar({ showRoutes = [] }: BottomAppBarProps) {
                     <View style={styles.appMenu}>
                         <Appbar.Action
                             icon="account"
-                            onPress={() => { router.push('auth/signup') }}
+                            onPress={() => { router.push('auth/signin') }}
                         />
                         <Text style={styles.appText}>account</Text>
                     </View>
                 </>
             )}
 
-            {shouldShowRoute('test') && (
+            {shouldShowRoute('logout') && (
                 <>
                     <View style={styles.appMenu}>
                         <Appbar.Action

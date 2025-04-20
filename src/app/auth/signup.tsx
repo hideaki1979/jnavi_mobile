@@ -20,6 +20,11 @@ type FormData = {
     confirmPassword: string;
 }
 
+/**
+ * サインアップ画面
+ * この画面では、Email・パスワードやGoogle認証でサインアップすることができます。
+ * @returns サインアップ画面
+ */
 const Signup = () => {
     const [loading, setLoading] = useState(false)
     const [secureTextEntry, setSecureTextEntry] = useState(true)
@@ -40,7 +45,14 @@ const Signup = () => {
     // 入力値の監視
     const password = watch('password')
 
-    // メール・パスワードでサインアップ
+
+    /**
+     * サインアップボタン押下時の処理
+     * この関数では、Email・パスワード認証を使用してサインアップを実行します。
+     * サインアップに成功した場合は、店舗画面に遷移します。
+     * サインアップに失敗した場合は、エラーメッセージをアラートで表示します。
+     * @param data サインアップフォームに入力された情報
+     */
     const onSignup = async (data: FormData) => {
         try {
             setLoading(true)
@@ -92,7 +104,13 @@ const Signup = () => {
         }
     }
 
-    // Google認証でサインアップ
+
+    /**
+     * Google認証サインアップボタン押下時の処理
+     * この関数では、Google認証を使用してサインアップを実行します。
+     * サインアップに成功した場合は、店舗画面に遷移します。
+     * サインアップに失敗した場合は、エラーメッセージをアラートで表示します。
+     */
     const onGoogleSignup = async () => {
         try {
             setLoading(true)
@@ -100,6 +118,7 @@ const Signup = () => {
             const isGoogleSignIn = GoogleSignin.hasPreviousSignIn()
             if (isGoogleSignIn) {
                 await GoogleSignin.signOut()
+                await firebaseAuth.signOut()
             }
             // Google認証サインアップ
             await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true })

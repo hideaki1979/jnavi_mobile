@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Alert, Dimensions, Platform, StyleSheet, View } from 'react-native'
 import MapView, { Marker, Region } from 'react-native-maps'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -10,6 +10,8 @@ import * as Location from 'expo-location'
 import BottomAppBar from '@/src/components/navigation/BottomAppBar'
 import LoadingErrorContainer from '@/src/components/feedback/LoadingErrorContainer'
 import StoreInfoBottomSheet from '@/src/components/map/StoreInfoBottomSheet'
+import { useAuth } from '../context/AuthProvider'
+import { type RouteType } from '@/src/types/routeType'
 
 /**
  * Mapコンポーネントは、現在位置とマーカーを表示する地図をレンダリングします。
@@ -35,6 +37,23 @@ export default function Map() {
     const [loading, setLoading] = useState<boolean>(true)
     const [selectedStore, setSelectedStore] = useState<MapStore | null>(null)
     const [isBottomSheetVisible, setIsBottomSheetVisible] = useState<boolean>(false)
+
+    const { user } = useAuth()
+
+    // ログイン状態に応じて表示するルートを決定
+    const showRoutes = useMemo<RouteType[]>(() => {
+        // 共通して表示するルート
+        const commonRoutes: RouteType[] = ['home', 'simulation']
+
+        // ログイン状態で表示を分ける
+        if (user) {
+            // ログイン済みの場合
+            return [...commonRoutes, 'create', 'logout']
+        } else {
+            // 未ログインの場合
+            return [...commonRoutes, 'account']
+        }
+    }, [user])
 
     useEffect(() => {
         // 現在位置情報を取得する。
@@ -156,7 +175,7 @@ export default function Map() {
             </View>
 
             {/* フッター (Appbar) */}
-            <BottomAppBar showRoutes={['create', 'simulation', 'account', 'test']} />
+            <BottomAppBar showRoutes={showRoutes} />
         </SafeAreaView>
     )
 }

@@ -1,0 +1,1 @@
+export type RouteType = 'map' | 'home' | 'create' | 'simulation' | 'account' | 'logout'
