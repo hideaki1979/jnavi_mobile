@@ -20,6 +20,7 @@ import { FontAwesome6 } from "@expo/vector-icons"
 import { generateToppingCalls } from "@/src/utils/toppingFormatter"
 import StoreRegisterToppingOptionSelector from "@/src/components/store/StoreRegisterToppingOptionSelector"
 import { getToppingCallOptions } from "@/src/api/toppingApi"
+import VoiceTextInput from "@/src/components/inputs/VoiceTextInput"
 
 /**
  * 店舗情報登録画面コンポーネント
@@ -131,8 +132,6 @@ export default function StoreCreate() {
                     params: { id: String(response.data.store.id) }
                 })
             }, 3000)
-
-
         } catch (error) {
             // エラー処理
             setSnackbarMessage(error instanceof Error ? error.message : "店舗情報登録処理でエラーが発生しました")
@@ -215,34 +214,13 @@ export default function StoreCreate() {
                 >
                     <StatusBar style={theme.dark ? "light" : "dark"} />
                     {/* 基本情報入力フィールド群 */}
-                    <Controller
+                    <VoiceTextInput
                         control={control}
-                        name="store_name"
-                        rules={{
-                            required: "店舗名は必須項目です"
-                        }}
-                        render={({ field, fieldState: { error } }) => (
-                            <>
-                                <TextInput
-                                    mode="outlined"
-                                    label={
-                                        <Text>
-                                            店舗名 <Text style={{ color: theme.colors.error }}>*</Text>
-                                        </Text>
-                                    }
-                                    value={field.value}
-                                    onChangeText={field.onChange}
-                                    onBlur={field.onBlur}
-                                    error={!!error}
-                                />
-                                {error && (
-                                    <Text style={{ color: theme.colors.error, fontSize: 10 }}>
-                                        {error.message}
-                                    </Text>
-                                )}
-                            </>
-                        )}
+                        name='store_name'
+                        label="店舗名"
+                        isRequired={true}
                     />
+
                     <Controller
                         control={control}
                         name="branch_name"

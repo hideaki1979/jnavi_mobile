@@ -45,7 +45,6 @@ const Signup = () => {
     // 入力値の監視
     const password = watch('password')
 
-
     /**
      * サインアップボタン押下時の処理
      * この関数では、Email・パスワード認証を使用してサインアップを実行します。

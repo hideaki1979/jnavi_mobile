@@ -21,7 +21,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^16.4.7",
-    "expo": "^52.0.44",
+    "expo": "~52.0.46",
     "expo-auth-session": "~6.0.3",
     "expo-build-properties": "~0.13.2",
     "expo-constants": "~17.0.7",
@@ -57,7 +57,8 @@
     "eslint-plugin-react": "^7.37.4",
     "globals": "^16.0.0",
     "typescript": "^5.3.3",
-    "typescript-eslint": "^8.26.0"
+    "typescript-eslint": "^8.26.0",
+    "undici": ">=6.21.2"
   },
   "private": true
 }

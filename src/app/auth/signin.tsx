@@ -29,7 +29,7 @@ type FormData = {
 
 const SignIn = () => {
     const [loading, setLoading] = useState<boolean>(false)
-    const [secureTextEntry, setSecureTextEntry] = useState<boolean>(false)
+    const [secureTextEntry, setSecureTextEntry] = useState<boolean>(true)
 
     const { signInWithEmail, signInWithGoogle } = useAuth()
 
