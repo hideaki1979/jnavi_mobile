@@ -15,7 +15,7 @@ J-Navi は、ラーメン二郎および二郎系ラーメン店の情報を提�
 
 - **フロントエンド**: React Native, TypeScript, Expo
 - **UI ライブラリ**: React Native Paper
-- **状態管理**:
+- **状態管理**: Zustand
 - **フォーム管理**: React Hook Form
 - **アニメーション**: React Native Reanimated, React Native Gesture Handler
 - **地図機能**: React Native Maps

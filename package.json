@@ -58,8 +58,10 @@
     "globals": "^16.0.0",
     "typescript": "^5.3.3",
     "typescript-eslint": "^8.26.0",
-    "undici": ">=6.21.2",
-    "brace-expansion": ">=2.0.2"
+    "undici": ">=6.21.2"
   },
-  "private": true
+  "private": true,
+  "overrides": {
+    "brace-expansion": "^2.0.2"
+  }
 }
