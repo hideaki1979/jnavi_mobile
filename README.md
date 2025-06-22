@@ -2,7 +2,7 @@
 
 ## 概要
 
-J-Naviは、ラーメン二郎および二郎系ラーメン店の情報を提供するモバイルアプリです。店舗の位置情報、営業時間、トッピング・コール情報を簡単に確認できます。React Native と Expo を使用して開発された、iOS と Android の両プラットフォームに対応したクロスプラットフォームアプリケーションです。
+J-Navi は、ラーメン二郎および二郎系ラーメン店の情報を提供するモバイルアプリです。店舗の位置情報、営業時間、トッピング・コール情報を簡単に確認できます。React Native と Expo を使用して開発された、iOS と Android の両プラットフォームに対応したクロスプラットフォームアプリケーションです。
 
 ## 特徴
 
@@ -10,14 +10,12 @@ J-Naviは、ラーメン二郎および二郎系ラーメン店の情報を提�
 - 営業時間や定休日の確認
 - 店舗のコール・トッピング情報の確認
 - トッピング・コールのシミュレーション機能
-- ユーザーによる訪問記録や評価機能（未実装）
-- パーソナライズされた店舗レコメンデーション（未実装）
 
 ## 技術スタック
 
 - **フロントエンド**: React Native, TypeScript, Expo
 - **UI ライブラリ**: React Native Paper
-- **状態管理**: 
+- **状態管理**:
 - **フォーム管理**: React Hook Form
 - **アニメーション**: React Native Reanimated, React Native Gesture Handler
 - **地図機能**: React Native Maps
@@ -29,66 +27,66 @@ J-Naviは、ラーメン二郎および二郎系ラーメン店の情報を提�
 - Node.js（バージョン 22.13.0 以上）
 - npm
 - Expo CLI
-- iOS開発の場合: Xcode 15 以上
-- Android開発の場合: Android Studio と SDK
+- iOS 開発の場合: Xcode 15 以上
+- Android 開発の場合: Android Studio と SDK
 
 ### インストール手順
 
 1. リポジトリをクローンします。
 
-    ```sh
-    git clone https://github.com/yourusername/jnavi.git
-    cd jnavi
-    ```
+   ```sh
+   git clone https://github.com/yourusername/jnavi.git
+   cd jnavi
+   ```
 
 2. 依存関係をインストールします。
 
-    ```sh
-    npm install
-    # または
-    yarn install
-    ```
+   ```sh
+   npm install
+   # または
+   yarn install
+   ```
 
 3. 環境変数ファイルを設定します。`.env.example` をコピーして `.env` を作成し、必要な API キーなどを設定します。
 
-    ```sh
-    cp .env.example .env
-    # その後、.envファイルを編集して必要な環境変数を設定
-    ```
+   ```sh
+   cp .env.example .env
+   # その後、.envファイルを編集して必要な環境変数を設定
+   ```
 
-4. Expo CLIをインストールしていない場合は、以下のコマンドでインストールします。
+4. Expo CLI をインストールしていない場合は、以下のコマンドでインストールします。
 
-    ```sh
-    npm install -g expo-cli
-    ```
+   ```sh
+   npm install -g expo-cli
+   ```
 
 ### 実行手順
 
 1. 開発サーバーを起動します。
 
-    ```sh
-    npx expo start
-    ```
+   ```sh
+   npx expo start
+   ```
 
-2. 表示されたQRコードをExpo Goアプリ（iOS/Android）でスキャンしてアプリを実行します。
+2. 表示された QR コードを Expo Go アプリ（iOS/Android）でスキャンしてアプリを実行します。
 
 3. iOS シミュレータで実行する場合:
 
-    ```sh
-    npx expo start --ios
-    ```
+   ```sh
+   npx expo start --ios
+   ```
 
 4. Android エミュレータで実行する場合:
 
-    ```sh
-    npx expo start --android
-    ```
+   ```sh
+   npx expo start --android
+   ```
 
 5. Expo Dev Client を使用して実行する場合:
 
-    ```sh
-    npx expo start --dev-client
-    ```
+   ```sh
+   npx expo start --dev-client
+   ```
 
 ## 開発ガイドライン
 
@@ -172,8 +170,8 @@ eas submit --platform android
 
 ## ライセンス
 
-このプロジェクトはMITライセンスの下で公開されています。詳細はLICENSEファイルを参照してください。
+このプロジェクトは MIT ライセンスの下で公開されています。詳細は LICENSE ファイルを参照してください。
 
 ## 連絡先
 
-質問や提案がある場合は、Issuesセクションで新しいイシューを作成するか、プロジェクト管理者にメールでお問い合わせください。
+質問や提案がある場合は、Issues セクションで新しいイシューを作成するか、プロジェクト管理者にメールでお問い合わせください。

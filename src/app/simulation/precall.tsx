@@ -4,7 +4,7 @@ import { ScrollView, StyleSheet, View } from "react-native"
 import { Button, Card, Text, useTheme } from "react-native-paper"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { Asset } from 'expo-asset'
-import preCallImageSource from '../../../public/images/jiro_counter2_manga_final.jpg'
+import preCallImageSource from '../../../public/images/precall.jpg'
 import HeaderAppBar from "@/src/components/navigation/HeaderAppBar"
 import BottomAppBar from "@/src/components/navigation/BottomAppBar"
 import { StatusBar } from "expo-status-bar"

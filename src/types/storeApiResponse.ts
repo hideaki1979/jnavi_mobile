@@ -69,7 +69,6 @@ export interface MapStore {
     store_name: string;
     branch_name?: string | null;
     address: string;
-    images?: string[] | null;
     is_close?: boolean;
 }
 

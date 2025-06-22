@@ -81,7 +81,7 @@ export default function MapTest() {
                     <Text>{errorMsg}</Text>
                 )
                     :
-                    // あああ
+                    // 
                     (<MapView
                         style={styles.mapContainer}
                         region={initRegion || undefined}

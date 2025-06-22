@@ -1,0 +1,104 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+description: React Native開発のためのコーディング規約とベストプラクティス
+alwaysApply: true
+---
+
+# React Native開発ルール
+
+## プログラミングスキル要件
+
+以下の技術スタックに関する熟練した知識を前提とします：
+
+- Node.js
+- React Native
+- PostgreSQL
+- Expo
+- Firebase
+
+## 回答方針
+
+### 基本方針
+
+1. 公式ドキュメントの最新情報に基づいて実装
+2. プログラミング初心者にもわかりやすい丁寧な説明を提供
+3. セキュリティと実装パターンを考慮したベストプラクティスの提示
+4. 単一の最適な解決策の提案
+5. 一般的な慣習（typeやinterfaceのプロパティは語尾にセミコロンを入れるなど）に基づいて実装
+
+### 実装形式
+
+1. 具体的な実装手順の提示
+2. 必要なパッケージのインストールコマンドを含む
+3. TypeScriptベースのReact Native実装
+4. Bare Workflow（Expo Dev Client）環境を前提とした実装
+5. Androidの画面構成はMaterial Designに基づく
+6. iOSの画面構成はヒューマンインターフェイスガイドラインに基づく
+7. アイコンはreact-native-vector-iconsを使用
+8. UIはReact Native Paperを使用
+9. 同じ実装内容の重複提示を避ける
+
+## 技術スタック
+
+### UI/UX
+- React Native Paper（UIコンポーネント）
+- react-native-vector-icons（アイコン）
+- Material Design（Android）
+- Human Interface Guidelines（iOS）
+
+### フォーム管理
+- React Hook Form
+
+### アニメーション・ジェスチャー
+- React Native Reanimated
+- React Native Gesture Handler
+- React Native Bottom Sheet
+
+### マップ
+- React Native Maps
+
+### 認証・バックエンド
+- Firebase
+- react-native-google-signin
+
+### データベース
+- PostgreSQL
+
+## コーディング規約
+
+### TypeScript
+- 型定義は明確に記述
+- interfaceとtypeのプロパティは語尾にセミコロン
+- 適切な型注釈の使用
+
+### React Native
+- 関数コンポーネントを使用
+- Hooksを適切に活用
+- パフォーマンスを考慮した実装
+
+### スタイリング
+- React Native Paperのテーマシステムを活用
+- プラットフォーム固有のスタイルは適切に分離
+- レスポンシブデザインの考慮
+
+## 参考ドキュメント
+
+- [Node.js v22.x](mdc:https:/nodejs.org/docs/latest-v22.x/api/index.html)
+- [React Native Getting Started](mdc:https:/reactnative.dev/docs/getting-started)
+- [PostgreSQL v16 日本語マニュアル](mdc:https:/www.postgresql.jp/document/16/index.html)
+- [Expo公式ドキュメント](mdc:https:/docs.expo.dev)
+- [react-native-firebase](mdc:https:/rnfirebase.io)
+- [react-native-google-signin](mdc:https:/react-native-google-signin.github.io)
+- [Material Design](mdc:https:/m2.material.io)
+- [react-native-vector-icons](mdc:https:/oblador.github.io/react-native-vector-icons)
+- [React Native Paper](mdc:https:/callstack.github.io/react-native-paper)
+- [React Hook Form](mdc:https:/www.react-hook-form.com)
+- [React Native Bottom Sheet](mdc:https:/gorhom.dev/react-native-bottom-sheet)
+- [React Native Reanimated](mdc:https:/docs.swmansion.com/react-native-reanimated)
+- [React Native Gesture Handler](mdc:https:/docs.swmansion.com/react-native-gesture-handler)
+- [React Native Maps](mdc:https:/github.com/react-native-maps/react-native-maps/tree/master)
+- [ヒューマンインターフェイスガイドライン](mdc:https:/developer.apple.com/jp/design/human-interface-guidelines)
