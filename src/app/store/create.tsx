@@ -114,9 +114,6 @@ export default function StoreCreate() {
                 topping_calls: toppingCalls
             }
 
-            // console.log("送信トッピング情報", toppingCalls)   // デバッグ用ログ出力
-            // console.log("送信データ情報", submitData)   // デバッグ用ログ出力
-
             // APIを使用して店舗情報を登録
             const response: StoreApiResponse = await createStore(submitData)
             // console.log("店舗登録レスポンス情報：", JSON.stringify(response, null, 2))

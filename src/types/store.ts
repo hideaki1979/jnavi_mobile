@@ -29,6 +29,7 @@ export interface StoreData {
 
 /**
  * トッピングコール情報の基底型型定義
+ * （店舗登録のAPI送信などに利用）
  */
 export interface BaseToppingCall {
     id?: number | string;
