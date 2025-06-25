@@ -1,5 +1,7 @@
 # J-Navi（二郎・二郎系情報アプリ）
 
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/hideaki1979/jnavi_mobile?utm_source=oss&utm_medium=github&utm_campaign=hideaki1979%2Fjnavi_mobile&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
+
 ## 概要
 
 J-Navi は、ラーメン二郎および二郎系ラーメン店の情報を提供するモバイルアプリです。店舗の位置情報、営業時間、トッピング・コール情報を簡単に確認できます。React Native と Expo を使用して開発された、iOS と Android の両プラットフォームに対応したクロスプラットフォームアプリケーションです。

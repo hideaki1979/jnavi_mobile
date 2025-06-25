@@ -1,3 +1,4 @@
+import { API_ENDPOINTS } from "../constants/apiEndpoints"
 import {
     ToppingApiResponse, CallOptionApiResponse,
     ToppingData,
@@ -48,7 +49,7 @@ export const getCallOptions = async (): Promise<CallOptionData[]> => {
 
 export const getToppingCallOptions = async (): Promise<ResultToppingCall[]> => {
     try {
-        const response = await api.get<ResultToppingCallApiRes>(`/toppings/calloptions`)
+        const response = await api.get<ResultToppingCallApiRes>(API_ENDPOINTS.TOPPING_CALL_OPTIONS_FORMATTED)
         return response.data.data
     } catch (error) {
         throw ApiClient.handleError(error, "トッピング・コールオプション情報取得時にエラーが発生しました。")
