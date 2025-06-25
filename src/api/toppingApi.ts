@@ -48,7 +48,7 @@ export const getCallOptions = async (): Promise<CallOptionData[]> => {
 
 export const getToppingCallOptions = async (): Promise<ResultToppingCall[]> => {
     try {
-        const response = await api.get<ResultToppingCallApiRes>(`/toppings/calloptions`)
+        const response = await api.get<ResultToppingCallApiRes>(`/toppings/calloptions/formatted`)
         return response.data.data
     } catch (error) {
         throw ApiClient.handleError(error, "トッピング・コールオプション情報取得時にエラーが発生しました。")
