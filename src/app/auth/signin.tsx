@@ -8,7 +8,7 @@ import { KeyboardAvoidingView, StyleSheet, View } from "react-native"
 import { ScrollView } from "react-native-gesture-handler"
 import { Button, Divider, HelperText, Text, TextInput, useTheme } from "react-native-paper"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { useAuth } from '../../context/AuthProvider'
+import { useAuth } from '@/src/context/AuthProvider'
 
 
 type FormData = {
