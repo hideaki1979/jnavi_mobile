@@ -50,6 +50,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
                     useFrameworks: "static"
                 }
             }
-        ]
+        ],
+        "expo-font"
     ]
 })

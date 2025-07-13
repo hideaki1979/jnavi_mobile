@@ -1,6 +1,13 @@
 import { firebaseAuth } from "@/src/config/firebase"
 import { User, AuthContextType } from "@/src/types/user"
-import { FirebaseAuthTypes, GoogleAuthProvider, onAuthStateChanged } from "@react-native-firebase/auth"
+import {
+    type FirebaseAuthTypes,
+    GoogleAuthProvider,
+    onAuthStateChanged,
+    signInWithEmailAndPassword,
+    signInWithCredential,
+    signOut as firebaseSignOut
+} from "@react-native-firebase/auth"
 import { GoogleSignin } from "@react-native-google-signin/google-signin"
 import { router } from "expo-router"
 import { createContext, ReactNode, useContext, useEffect, useState } from "react"
@@ -47,7 +54,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const signInWithEmail = async (email: string, password: string): Promise<string | null> => {
         try {
             // Firebaseでのメール/パスワード認証
-            const userCredential = await firebaseAuth.signInWithEmailAndPassword(email, password)
+            const userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password)
             return userCredential.user.uid
         } catch (error) {
             console.log('サインインエラー：', error)
@@ -103,8 +110,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
             // Firebaseクレデンシャルを作成してサインイン
             const googleCredential = GoogleAuthProvider.credential(idToken)
-            const userCredential = firebaseAuth.signInWithCredential(googleCredential)
-            return (await userCredential).user.uid
+            const userCredential = await signInWithCredential(firebaseAuth, googleCredential)
+            return userCredential.user.uid
         } catch (error) {
             console.error('Google認証サインインエラー：', error)
             let errorMessage = ''
@@ -125,7 +132,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const signOut = async () => {
         try {
             await GoogleSignin.signOut()
-            await firebaseAuth.signOut()
+            await firebaseSignOut(firebaseAuth)
             // router.replace('auth/signin')
             router.replace('store/map')
         } catch (error) {
