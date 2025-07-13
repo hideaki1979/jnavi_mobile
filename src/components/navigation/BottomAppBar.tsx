@@ -2,7 +2,7 @@ import { router } from "expo-router"
 import { StyleSheet } from "react-native"
 import { Appbar, Text } from "react-native-paper"
 import { View } from "react-native"
-import { useAuth } from "@/src/app/context/AuthProvider"
+import { useAuth } from "@/src/context/AuthProvider"
 import { type RouteType } from "@/src/types/routeType"
 
 type BottomAppBarProps = {

@@ -4,7 +4,7 @@ import { PaperProvider } from 'react-native-paper'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import lightTheme, { darkTheme } from '../styles/theme'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
-import { AuthProvider } from './context/AuthProvider'
+import { AuthProvider } from '@/src/context/AuthProvider'
 import '@/src/config/google'
 
 const Layout = () => {

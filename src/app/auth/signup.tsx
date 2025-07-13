@@ -11,7 +11,13 @@ import HeaderAppBar from '@/src/components/navigation/HeaderAppBar'
 import { ScrollView } from 'react-native-gesture-handler'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { createUser } from '@/src/api/AuthApi'
-import { GoogleAuthProvider } from '@react-native-firebase/auth'
+import {
+    createUserWithEmailAndPassword,
+    updateProfile,
+    signOut,
+    signInWithCredential,
+    GoogleAuthProvider
+} from '@react-native-firebase/auth'
 
 type FormData = {
     userName: string;
@@ -56,11 +62,11 @@ const Signup = () => {
         try {
             setLoading(true)
             // Firebaseパスワード認証
-            const userCredential = await firebaseAuth.createUserWithEmailAndPassword(data.email, data.password)
+            const userCredential = await createUserWithEmailAndPassword(firebaseAuth, data.email, data.password)
             const user = userCredential.user
 
             // ユーザープロファイルの更新（ユーザー名）
-            await user.updateProfile({ displayName: data.userName })
+            await updateProfile(user, { displayName: data.userName })
             console.log('認証情報：', user)
 
             await createUser({
@@ -117,7 +123,7 @@ const Signup = () => {
             const isGoogleSignIn = GoogleSignin.hasPreviousSignIn()
             if (isGoogleSignIn) {
                 await GoogleSignin.signOut()
-                await firebaseAuth.signOut()
+                await signOut(firebaseAuth)
             }
             // Google認証サインアップ
             await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true })
@@ -131,7 +137,7 @@ const Signup = () => {
             const googleCredential = GoogleAuthProvider.credential(idToken)
 
             // Firebase認証
-            const userCredential = await firebaseAuth.signInWithCredential(googleCredential)
+            const userCredential = await signInWithCredential(firebaseAuth, googleCredential)
             const user = userCredential.user
 
             await createUser({

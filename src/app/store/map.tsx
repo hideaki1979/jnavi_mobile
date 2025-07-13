@@ -10,7 +10,7 @@ import * as Location from 'expo-location'
 import BottomAppBar from '@/src/components/navigation/BottomAppBar'
 import LoadingErrorContainer from '@/src/components/feedback/LoadingErrorContainer'
 import StoreInfoBottomSheet from '@/src/components/map/StoreInfoBottomSheet'
-import { useAuth } from '../context/AuthProvider'
+import { useAuth } from '@/src/context/AuthProvider'
 import { type RouteType } from '@/src/types/routeType'
 
 /**

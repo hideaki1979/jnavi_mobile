@@ -53,3 +53,6 @@ GoogleService-Info.plist
 
 # Android Firebase
 google-services.json
+
+# cursor
+.cursor/
