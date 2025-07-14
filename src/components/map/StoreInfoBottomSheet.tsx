@@ -1,9 +1,17 @@
 import { Dimensions, View, StyleSheet } from "react-native"
-import { ActivityIndicator, Button, Card, IconButton, Modal, Paragraph, Portal, Text, Title, useTheme } from "react-native-paper"
-import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet"
+import {
+    ActivityIndicator,
+    Button,
+    IconButton,
+    Modal,
+    Portal,
+    Text,
+    useTheme
+} from "react-native-paper"
+import BottomSheet, { BottomSheetFlatList, BottomSheetView } from "@gorhom/bottom-sheet"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { MapStore } from "@/src/types/storeApiResponse"
-import { FlatList, TouchableOpacity } from "react-native-gesture-handler"
+import { TouchableOpacity } from "react-native-gesture-handler"
 import { router } from "expo-router"
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons"
 import { StoreImageDownloadData } from "@/src/types/storeImage"
@@ -11,6 +19,9 @@ import { getStoreImages } from "@/src/api/ImageApi"
 import { Image as ExpoImage } from "expo-image"
 
 const { width, height } = Dimensions.get('window')
+
+const IMAGE_WIDTH = (width - 8) * 0.8    // 左右のpadding(16*2) + cardのpadding(16)を考慮
+const SNAP_INTERVAL = IMAGE_WIDTH + 8
 
 interface StoreInfoProps {
     visible: boolean;
@@ -33,12 +44,16 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
     useEffect(() => {
         if (store && store.id) {
             getStoreImagesInfo(store.id)
+        } else {
+            // ストアがnullになったら画像もクリア
+            setStoreImages([])
         }
     }, [store])
 
     // APIから店舗画像を取得する。
     const getStoreImagesInfo = async (storeId: string | number) => {
         setIsLoading(true)
+        setError(null)
         try {
             const imagesData = await getStoreImages(String(storeId))
             setStoreImages(imagesData)
@@ -76,91 +91,110 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
     const navigateToStoreDetail = useCallback(() => {
         // BottomSheetを閉じる
         if (store && store.id) {
-            bottomSheetRef.current?.close()
-            // 親コンポーネントのonCloseも呼び出す
-            onClose()
+            handleCloseSheet()
             // 店舗詳細画面に遷移
             router.push({
                 pathname: `store/detail`,
-                params: { id: store?.id }
+                params: { id: store.id }
             })
         }
-    }, [store, onClose])
+    }, [store, handleCloseSheet])
 
-    if (!store) return null
+    const renderHeader = () => (
+        <View style={styles.headerContainer}>
+            <TouchableOpacity onPress={navigateToStoreDetail}>
+                <Text variant="titleSmall" style={styles.storeName}>
+                    {store?.branch_name ? `${store.store_name} ${store.branch_name}` : store?.store_name}
+                </Text>
+                <View style={styles.addressContainer}>
+                    <MaterialIcons
+                        name="location-on"
+                        size={16}
+                        color={theme.colors.primary}
+                    />
+                    <Text variant="bodyMedium">
+                        {store?.address}
+                    </Text>
+                </View>
+            </TouchableOpacity>
+        </View>
+    )
+
+    const renderFooter = () => (
+        <Button
+            mode="contained"
+            onPress={handleCloseSheet}
+            style={styles.closeButton}
+            icon="close"
+        >
+            閉じる
+        </Button>
+    )
+
+    const renderImageItem = ({ item }: { item: StoreImageDownloadData }) => (
+        <TouchableOpacity
+            onPress={() => openImageModal(item)}
+        >
+            <ExpoImage
+                source={{ uri: item.image_url }}
+                style={styles.storeImages}
+                contentFit="cover"
+                transition={300}
+            >
+            </ExpoImage>
+        </TouchableOpacity>
+    )
+
+    if (!visible || !store) return null
 
     return (
         <>
             <BottomSheet
                 ref={bottomSheetRef}
-                index={visible ? 0 : -1}
+                index={0}
                 snapPoints={snapPoints}
                 enablePanDownToClose={true}
                 onChange={handleSheetChanges}
                 handleIndicatorStyle={{ backgroundColor: theme.colors.outline }}
-                backgroundStyle={{ backgroundColor: theme.colors.background }}
+                backgroundStyle={{ backgroundColor: theme.colors.surface }}
                 style={styles.sheetContainer}
                 animateOnMount={true}
             >
                 <BottomSheetView style={styles.contentContainer}>
-                    <Card style={styles.card}>
-                        <Card.Content>
-                            <TouchableOpacity onPress={navigateToStoreDetail}>
-                                <Title style={styles.storeName}>
-                                    {store.branch_name ? `${store.store_name} ${store.branch_name}` : `${store.store_name}`}
-                                </Title>
-                                <Paragraph style={styles.storeAddress}>
-                                    <MaterialIcons name="location-on" size={14} color={theme.colors.primary} />
-                                    {" " + store.address}
-                                </Paragraph>
-                            </TouchableOpacity>
-                        </Card.Content>
-                        {/* 画像スライダー */}
-                        <BottomSheetView style={styles.imageContainer}>
-                            {isLoading ? (
-                                <View style={styles.loadingContainer}>
-                                    <ActivityIndicator size="small" color={theme.colors.primary} />
-                                </View>
-                            ) : error ? (
-                                <Paragraph style={styles.errorText}>画像の読み込みに失敗しました。</Paragraph>
-                            ) : storeImages.length > 0 ? (
-                                <FlatList
+                    {isLoading ? (
+                        <View style={styles.centeredContainer}>
+                            <ActivityIndicator size="small" />
+                        </View>
+                    ) : error ? (
+                        <View style={styles.centeredContainer}>
+                            <Text variant="bodyMedium" style={styles.errorText}>
+                                {error}
+                            </Text>
+                            {renderFooter()}
+                        </View>
+                    ) : (
+                        <>
+                            {renderHeader()}
+                            {storeImages.length > 0 ? (
+                                <BottomSheetFlatList
                                     data={storeImages}
-                                    horizontal
-                                    pagingEnabled
-                                    snapToInterval={width * 0.65}
-                                    snapToAlignment="center"
-                                    showsHorizontalScrollIndicator={false}
-                                    contentContainerStyle={{ paddingHorizontal: 8 }}
-                                    renderItem={({ item }: { item: StoreImageDownloadData }) => (
-                                        <TouchableOpacity onPress={() => openImageModal(item)}>
-                                            <ExpoImage
-                                                source={{ uri: item.image_url }}
-                                                style={styles.storeImages}
-                                                contentFit="cover"
-                                                transition={300}
-                                            />
-                                        </TouchableOpacity>
-                                    )}
                                     keyExtractor={(item: StoreImageDownloadData) => item.id.toString()}
-                                    style={styles.imageList}
+                                    renderItem={renderImageItem}
+                                    horizontal
+                                    snapToInterval={SNAP_INTERVAL}
+                                    showsHorizontalScrollIndicator={false}
+                                    contentContainerStyle={styles.imageListContent}
                                 />
                             ) : (
-                                <Paragraph style={styles.noImageText}>店舗画像が登録されてません。</Paragraph>
+                                <View style={styles.centeredContainer}>
+                                    <Text variant="bodyMedium">
+                                        店舗画像が登録されてません。
+                                    </Text>
+                                </View>
                             )}
-                        </BottomSheetView>
-                        {/* )} */}
-                    </Card>
-
-                    {/* 閉じるボタン */}
-                    <Button
-                        mode="contained"
-                        onPress={handleCloseSheet}
-                        style={styles.closeButton}
-                        icon="close"
-                    >
-                        閉じる
-                    </Button>
+                            {renderFooter()}
+                        </>
+                    )}
                 </BottomSheetView>
             </BottomSheet>
             {/* 画像拡大モーダル */}
@@ -178,10 +212,10 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
                             transition={300}
                         />
                         <View style={styles.modalMenuContainer} key={selectedImage?.id}>
-                            <Paragraph style={styles.modalSectionTitle}>
+                            <Text variant="titleMedium" style={styles.modalSectionTitle}>
                                 <MaterialCommunityIcons name="menu" size={20} color={theme.colors.primary} />
                                 【メニュー情報】
-                            </Paragraph>
+                            </Text>
                             <View style={styles.modalMenuRow}>
                                 <Text style={styles.modalMenuLabel}>
                                     <MaterialCommunityIcons name="noodles" size={20} color={theme.colors.primary} />
@@ -196,10 +230,10 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
                                 </Text>
                                 <Text style={styles.modalMenuValue}>{selectedImage?.menu_type === 1 ? "通常メニュー" : "限定メニュー"}</Text>
                             </View>
-                            <Paragraph style={styles.modalSectionTitle}>
+                            <Text variant="titleMedium" style={styles.modalSectionTitle}>
                                 <MaterialCommunityIcons name="chat" size={20} color={theme.colors.primary} />
                                 【トッピングコール情報】
-                            </Paragraph>
+                            </Text>
                             {selectedImage?.topping_calls?.map((toppingOption) => (
                                 <View style={styles.modalMenuRow} key={toppingOption.topping_id}>
                                     <Text style={styles.modalMenuLabel}>
@@ -228,59 +262,57 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
 const styles = StyleSheet.create({
     sheetContainer: {
         borderTopLeftRadius: 16,
-        borderTopRightRadius: 16
+        borderTopRightRadius: 16,
+        // 影をつける
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: -3
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 8
     },
     contentContainer: {
-        flex: 1,
-        paddingHorizontal: 16,
-        paddingBottom: 16
+        flex: 1
     },
-    card: {
-        margin: 8,
-        elevation: 0
+    headerContainer: {
+        paddingHorizontal: 16
     },
     storeName: {
-        fontSize: 12,
         fontWeight: "bold",
         marginBottom: 8,
         textDecorationLine: "underline"
     },
+    addressContainer: {
+        flexDirection: "row",
+        alignItems: "center"
+    },
     storeAddress: {
-        fontSize: 10,
-        marginBottom: 8,
-        textDecorationLine: "underline"
+        marginLeft: 4,
+        flexShrink: 1   // アドレスが長い場合に折り返す
     },
-    imageList: {
-        flexGrow: 0
-    },
-    imageContainer: {
-        marginBottom: 8,
-        paddingHorizontal: 16,
-        paddingTop: 8
+    imageListContent: {
+        paddingVertical: 8
     },
     storeImages: {
-        width: width * 0.6,
-        height: 120,
+        width: IMAGE_WIDTH,
+        height: 150,
         borderRadius: 8,
         marginRight: 8
     },
-    loadingContainer: {
-        height: 120,
+    centeredContainer: {
+        flex: 1,
         justifyContent: "center",
-        alignItems: "center"
-    },
-    errorText: {
-        textAlign: "center",
-        color: "red",
+        alignItems: "center",
         padding: 16
     },
-    noImageText: {
+    errorText: {
         textAlign: "center",
         padding: 16
     },
     closeButton: {
-        marginVertical: 8,
-        marginHorizontal: 8,
+        margin: 16,
         borderRadius: 8
     },
     modalContainer: {
@@ -306,35 +338,34 @@ const styles = StyleSheet.create({
         width: "100%",
         justifyContent: "flex-end",
         paddingHorizontal: 24,
-        // backgroundColor: "rgba(233, 253, 8, 0.9)",
-        marginBottom: 16
+        backgroundColor: "rgba(0, 0, 0, 0.2)",
+        marginTop: 16,
+        borderRadius: 16
     },
     modalSectionTitle: {
-        fontSize: 16,
         fontWeight: "bold",
         marginVertical: 16
     },
     modalMenuRow: {
         flexDirection: "row",
+        alignItems: "center",
         marginBottom: 16
     },
     modalMenuLabel: {
-        fontSize: 14,
         fontWeight: "bold",
-        width: "40%",
+        width: "45%",
         lineHeight: 20
     },
     modalMenuValue: {
-        fontSize: 12,
-        width: "50%",
+        width: "55%",
         lineHeight: 20
 
     },
     closeIcon: {
         position: "absolute",
-        top: 24,
+        top: 32,
         right: 16,
-        backgroundColor: "rgba(0, 0, 0, 0.2)",
+        backgroundColor: "rgba(0, 0, 0, 0.3)",
         borderRadius: 20
     }
 })
