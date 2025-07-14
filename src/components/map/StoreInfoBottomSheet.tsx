@@ -20,7 +20,10 @@ import { Image as ExpoImage } from "expo-image"
 
 const { width, height } = Dimensions.get('window')
 
-const IMAGE_WIDTH = (width - 8) * 0.8    // 左右のpadding(16*2) + cardのpadding(16)を考慮
+// ボトムシートの左右のパディング合計 (16px * 2)
+const HORIZONTAL_MARGIN = 32
+const IMAGE_WIDTH_RATIO = 0.8
+const IMAGE_WIDTH = (width - HORIZONTAL_MARGIN) * IMAGE_WIDTH_RATIO
 const SNAP_INTERVAL = IMAGE_WIDTH + 8
 
 interface StoreInfoProps {
@@ -112,7 +115,7 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
                         size={16}
                         color={theme.colors.primary}
                     />
-                    <Text variant="bodyMedium">
+                    <Text variant="bodyMedium" style={styles.storeAddress}>
                         {store?.address}
                     </Text>
                 </View>
@@ -293,7 +296,8 @@ const styles = StyleSheet.create({
         flexShrink: 1   // アドレスが長い場合に折り返す
     },
     imageListContent: {
-        paddingVertical: 8
+        paddingVertical: 8,
+        paddingHorizontal: HORIZONTAL_MARGIN / 2 // 左右にパディングを適用
     },
     storeImages: {
         width: IMAGE_WIDTH,
