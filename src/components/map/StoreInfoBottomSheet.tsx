@@ -143,18 +143,17 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
                 style={styles.storeImages}
                 contentFit="cover"
                 transition={300}
-            >
-            </ExpoImage>
+            />
         </TouchableOpacity>
     )
 
-    if (!visible || !store) return null
+    if (!store) return null
 
     return (
         <>
             <BottomSheet
                 ref={bottomSheetRef}
-                index={0}
+                index={visible ? 0 : -1}
                 snapPoints={snapPoints}
                 enablePanDownToClose={true}
                 onChange={handleSheetChanges}
