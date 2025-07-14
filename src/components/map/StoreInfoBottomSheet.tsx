@@ -24,7 +24,8 @@ const { width, height } = Dimensions.get('window')
 const HORIZONTAL_MARGIN = 32
 const IMAGE_WIDTH_RATIO = 0.8
 const IMAGE_WIDTH = (width - HORIZONTAL_MARGIN) * IMAGE_WIDTH_RATIO
-const SNAP_INTERVAL = IMAGE_WIDTH + 8
+const IMAGE_MARGIN_RIGHT = 8
+const SNAP_INTERVAL = IMAGE_WIDTH + IMAGE_MARGIN_RIGHT
 
 interface StoreInfoProps {
     visible: boolean;
@@ -103,11 +104,11 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
         }
     }, [store, handleCloseSheet])
 
-    const renderHeader = () => (
+    const renderHeader = (store: MapStore) => (
         <View style={styles.headerContainer}>
             <TouchableOpacity onPress={navigateToStoreDetail}>
                 <Text variant="titleSmall" style={styles.storeName}>
-                    {store?.branch_name ? `${store.store_name} ${store.branch_name}` : store?.store_name}
+                    {store.branch_name ? `${store.store_name} ${store.branch_name}` : store.store_name}
                 </Text>
                 <View style={styles.addressContainer}>
                     <MaterialIcons
@@ -116,7 +117,7 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
                         color={theme.colors.primary}
                     />
                     <Text variant="bodyMedium" style={styles.storeAddress}>
-                        {store?.address}
+                        {store.address}
                     </Text>
                 </View>
             </TouchableOpacity>
@@ -176,7 +177,7 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
                         </View>
                     ) : (
                         <>
-                            {renderHeader()}
+                            {renderHeader(store)}
                             {storeImages.length > 0 ? (
                                 <BottomSheetFlatList
                                     data={storeImages}
