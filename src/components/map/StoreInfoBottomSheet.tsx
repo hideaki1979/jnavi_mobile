@@ -1,4 +1,4 @@
-import { Dimensions, View, StyleSheet } from "react-native"
+import { View, StyleSheet, useWindowDimensions } from "react-native"
 import {
     ActivityIndicator,
     Button,
@@ -8,24 +8,21 @@ import {
     Text,
     useTheme
 } from "react-native-paper"
-import BottomSheet, { BottomSheetFlatList, BottomSheetView } from "@gorhom/bottom-sheet"
+import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { MapStore } from "@/src/types/storeApiResponse"
-import { TouchableOpacity } from "react-native-gesture-handler"
+import { FlatList, TouchableOpacity } from "react-native-gesture-handler"
 import { router } from "expo-router"
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons"
 import { StoreImageDownloadData } from "@/src/types/storeImage"
 import { getStoreImages } from "@/src/api/ImageApi"
 import { Image as ExpoImage } from "expo-image"
 
-const { width, height } = Dimensions.get('window')
 
 // ボトムシートの左右のパディング合計 (16px * 2)
 const HORIZONTAL_MARGIN = 32
 const IMAGE_WIDTH_RATIO = 0.8
-const IMAGE_WIDTH = (width - HORIZONTAL_MARGIN) * IMAGE_WIDTH_RATIO
 const IMAGE_MARGIN_RIGHT = 8
-const SNAP_INTERVAL = IMAGE_WIDTH + IMAGE_MARGIN_RIGHT
 
 interface StoreInfoProps {
     visible: boolean;
@@ -43,6 +40,15 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
     const [storeImages, setStoreImages] = useState<StoreImageDownloadData[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+
+    const { width: windowWidth, height: windowHeight } = useWindowDimensions()  // ウィンドウの幅を動的に取得
+    const dynamicImageWidth = useMemo(() =>
+        Math.floor((windowWidth - HORIZONTAL_MARGIN) * IMAGE_WIDTH_RATIO)
+        , [windowWidth])
+    const dynamicSnapInterval = useMemo(() =>
+        dynamicImageWidth + IMAGE_MARGIN_RIGHT
+        , [dynamicImageWidth])
+
 
     // 初期表示、店舗情報が変更された（map画面から店舗マーカークリック時）場合、店舗画像を取得
     useEffect(() => {
@@ -104,10 +110,14 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
         }
     }, [store, handleCloseSheet])
 
+    const snapToOffsets = useMemo(() =>
+        storeImages.map((_, index) => index * dynamicSnapInterval),
+        [storeImages, dynamicSnapInterval])
+
     const renderHeader = (store: MapStore) => (
         <View style={styles.headerContainer}>
             <TouchableOpacity onPress={navigateToStoreDetail}>
-                <Text variant="titleSmall" style={styles.storeName}>
+                <Text variant="titleMedium" style={styles.storeName}>
                     {store.branch_name ? `${store.store_name} ${store.branch_name}` : store.store_name}
                 </Text>
                 <View style={styles.addressContainer}>
@@ -141,7 +151,10 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
         >
             <ExpoImage
                 source={{ uri: item.image_url }}
-                style={styles.storeImages}
+                style={[styles.storeImage,
+                {
+                    width: dynamicImageWidth
+                }]}
                 contentFit="cover"
                 transition={300}
             />
@@ -166,7 +179,7 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
                 <BottomSheetView style={styles.contentContainer}>
                     {isLoading ? (
                         <View style={styles.centeredContainer}>
-                            <ActivityIndicator size="small" />
+                            <ActivityIndicator size="large" />
                         </View>
                     ) : error ? (
                         <View style={styles.centeredContainer}>
@@ -179,14 +192,15 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
                         <>
                             {renderHeader(store)}
                             {storeImages.length > 0 ? (
-                                <BottomSheetFlatList
+                                <FlatList
                                     data={storeImages}
                                     keyExtractor={(item: StoreImageDownloadData) => item.id.toString()}
                                     renderItem={renderImageItem}
                                     horizontal
-                                    snapToInterval={SNAP_INTERVAL}
                                     showsHorizontalScrollIndicator={false}
                                     contentContainerStyle={styles.imageListContent}
+                                    snapToOffsets={snapToOffsets}
+                                    decelerationRate="fast"
                                 />
                             ) : (
                                 <View style={styles.centeredContainer}>
@@ -210,7 +224,11 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
                     <View style={styles.modalContent}>
                         <ExpoImage
                             source={{ uri: selectedImage?.image_url || '' }}
-                            style={styles.modalImage}
+                            style={{
+                                marginTop: 48,
+                                width: windowWidth * 0.75,
+                                height: windowHeight * 0.35
+                            }}
                             contentFit="contain"
                             transition={300}
                         />
@@ -295,15 +313,15 @@ const styles = StyleSheet.create({
         marginLeft: 4,
         flexShrink: 1   // アドレスが長い場合に折り返す
     },
-    imageListContent: {
-        paddingVertical: 8,
-        paddingHorizontal: HORIZONTAL_MARGIN / 2 // 左右にパディングを適用
-    },
-    storeImages: {
-        width: IMAGE_WIDTH,
+    storeImage: {
         height: 150,
         borderRadius: 8,
         marginRight: 8
+    },
+    imageListContent: {
+        paddingVertical: 8,
+        paddingLeft: HORIZONTAL_MARGIN / 2, // 左右にパディングを適用
+        paddingRight: HORIZONTAL_MARGIN / 2 - IMAGE_MARGIN_RIGHT
     },
     centeredContainer: {
         flex: 1,
@@ -333,10 +351,6 @@ const styles = StyleSheet.create({
         backgroundColor: "transparent"
     },
     modalImage: {
-        marginTop: 48,
-        width: width * 0.75,
-        height: height * 0.35
-        // backgroundColor: "yellow"
     },
     modalMenuContainer: {
         width: "100%",
