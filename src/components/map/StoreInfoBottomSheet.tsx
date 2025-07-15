@@ -148,12 +148,10 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
         >
             <ExpoImage
                 source={{ uri: item.image_url }}
-                style={{
-                    width: dynamicImageWidth,
-                    height: 150,
-                    borderRadius: 8,
-                    marginRight: 8
-                }}
+                style={[styles.storeImage,
+                {
+                    width: dynamicImageWidth
+                }]}
                 contentFit="cover"
                 transition={300}
             />
@@ -313,6 +311,11 @@ const styles = StyleSheet.create({
     storeAddress: {
         marginLeft: 4,
         flexShrink: 1   // アドレスが長い場合に折り返す
+    },
+    storeImage: {
+        height: 150,
+        borderRadius: 8,
+        marginRight: 8
     },
     imageListContent: {
         paddingVertical: 8,
