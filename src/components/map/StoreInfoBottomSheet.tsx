@@ -1,4 +1,4 @@
-import { Dimensions, View, StyleSheet } from "react-native"
+import { Dimensions, View, StyleSheet, useWindowDimensions } from "react-native"
 import {
     ActivityIndicator,
     Button,
@@ -18,14 +18,12 @@ import { StoreImageDownloadData } from "@/src/types/storeImage"
 import { getStoreImages } from "@/src/api/ImageApi"
 import { Image as ExpoImage } from "expo-image"
 
-const { width, height } = Dimensions.get('window')
+const { height } = Dimensions.get('window')
 
 // ボトムシートの左右のパディング合計 (16px * 2)
 const HORIZONTAL_MARGIN = 32
 const IMAGE_WIDTH_RATIO = 0.8
-const IMAGE_WIDTH = Math.floor((width - HORIZONTAL_MARGIN) * IMAGE_WIDTH_RATIO)
 const IMAGE_MARGIN_RIGHT = 8
-const SNAP_INTERVAL = IMAGE_WIDTH + IMAGE_MARGIN_RIGHT
 
 interface StoreInfoProps {
     visible: boolean;
@@ -43,6 +41,11 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
     const [storeImages, setStoreImages] = useState<StoreImageDownloadData[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+
+    const { width: windowWidth } = useWindowDimensions()  // ウィンドウの幅を動的にシュトック
+    const dynamicImageWidth = Math.floor((windowWidth - HORIZONTAL_MARGIN) * IMAGE_WIDTH_RATIO)
+    const dynamicSnapInterval = dynamicImageWidth + IMAGE_MARGIN_RIGHT
+
 
     // 初期表示、店舗情報が変更された（map画面から店舗マーカークリック時）場合、店舗画像を取得
     useEffect(() => {
@@ -105,7 +108,7 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
     }, [store, handleCloseSheet])
 
     const snapToOffsets = useMemo(() =>
-        storeImages.map((_, index) => index * SNAP_INTERVAL),
+        storeImages.map((_, index) => index * dynamicSnapInterval),
         [storeImages.length])
 
     const renderHeader = (store: MapStore) => (
@@ -145,7 +148,12 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
         >
             <ExpoImage
                 source={{ uri: item.image_url }}
-                style={styles.storeImages}
+                style={{
+                    width: dynamicImageWidth,
+                    height: 150,
+                    borderRadius: 8,
+                    marginRight: 8
+                }}
                 contentFit="cover"
                 transition={300}
             />
@@ -217,7 +225,11 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
                     <View style={styles.modalContent}>
                         <ExpoImage
                             source={{ uri: selectedImage?.image_url || '' }}
-                            style={styles.modalImage}
+                            style={{
+                                marginTop: 48,
+                                width: dynamicImageWidth * 0.75,
+                                height: height * 0.35
+                            }}
                             contentFit="contain"
                             transition={300}
                         />
@@ -307,12 +319,6 @@ const styles = StyleSheet.create({
         paddingLeft: HORIZONTAL_MARGIN / 2, // 左右にパディングを適用
         paddingRight: HORIZONTAL_MARGIN / 2 - IMAGE_MARGIN_RIGHT
     },
-    storeImages: {
-        width: IMAGE_WIDTH,
-        height: 150,
-        borderRadius: 8,
-        marginRight: 8
-    },
     centeredContainer: {
         flex: 1,
         justifyContent: "center",
@@ -341,10 +347,6 @@ const styles = StyleSheet.create({
         backgroundColor: "transparent"
     },
     modalImage: {
-        marginTop: 48,
-        width: width * 0.75,
-        height: height * 0.35
-        // backgroundColor: "yellow"
     },
     modalMenuContainer: {
         width: "100%",
