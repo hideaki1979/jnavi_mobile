@@ -42,9 +42,13 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    const { width: windowWidth } = useWindowDimensions()  // ウィンドウの幅を動的にシュトック
-    const dynamicImageWidth = Math.floor((windowWidth - HORIZONTAL_MARGIN) * IMAGE_WIDTH_RATIO)
-    const dynamicSnapInterval = dynamicImageWidth + IMAGE_MARGIN_RIGHT
+    const { width: windowWidth } = useWindowDimensions()  // ウィンドウの幅を動的に取得
+    const dynamicImageWidth = useMemo(() =>
+        Math.floor((windowWidth - HORIZONTAL_MARGIN) * IMAGE_WIDTH_RATIO)
+        , [windowWidth])
+    const dynamicSnapInterval = useMemo(() =>
+        dynamicImageWidth + IMAGE_MARGIN_RIGHT
+        , [dynamicImageWidth])
 
 
     // 初期表示、店舗情報が変更された（map画面から店舗マーカークリック時）場合、店舗画像を取得
@@ -109,7 +113,7 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
 
     const snapToOffsets = useMemo(() =>
         storeImages.map((_, index) => index * dynamicSnapInterval),
-        [storeImages.length])
+        [storeImages, dynamicSnapInterval])
 
     const renderHeader = (store: MapStore) => (
         <View style={styles.headerContainer}>
@@ -173,45 +177,43 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
                 style={styles.sheetContainer}
                 animateOnMount={true}
             >
-                {isLoading ? (
-                    <View style={styles.centeredContainer}>
-                        <ActivityIndicator size="large" />
-                    </View>
-                ) : (
-                    <BottomSheetView style={styles.contentContainer}>
-                        {error ? (
-                            <View style={styles.centeredContainer}>
-                                <Text variant="bodyMedium" style={styles.errorText}>
-                                    {error}
-                                </Text>
-                                {renderFooter()}
-                            </View>
-                        ) : (
-                            <>
-                                {renderHeader(store)}
-                                {storeImages.length > 0 ? (
-                                    <FlatList
-                                        data={storeImages}
-                                        keyExtractor={(item: StoreImageDownloadData) => item.id.toString()}
-                                        renderItem={renderImageItem}
-                                        horizontal
-                                        showsHorizontalScrollIndicator={false}
-                                        contentContainerStyle={styles.imageListContent}
-                                        snapToOffsets={snapToOffsets}
-                                        decelerationRate="fast"
-                                    />
-                                ) : (
-                                    <View style={styles.centeredContainer}>
-                                        <Text variant="bodyMedium">
-                                            店舗画像が登録されてません。
-                                        </Text>
-                                    </View>
-                                )}
-                                {renderFooter()}
-                            </>
-                        )}
-                    </BottomSheetView>
-                )}
+                <BottomSheetView style={styles.contentContainer}>
+                    {isLoading ? (
+                        <View style={styles.centeredContainer}>
+                            <ActivityIndicator size="large" />
+                        </View>
+                    ) : error ? (
+                        <View style={styles.centeredContainer}>
+                            <Text variant="bodyMedium" style={styles.errorText}>
+                                {error}
+                            </Text>
+                            {renderFooter()}
+                        </View>
+                    ) : (
+                        <>
+                            {renderHeader(store)}
+                            {storeImages.length > 0 ? (
+                                <FlatList
+                                    data={storeImages}
+                                    keyExtractor={(item: StoreImageDownloadData) => item.id.toString()}
+                                    renderItem={renderImageItem}
+                                    horizontal
+                                    showsHorizontalScrollIndicator={false}
+                                    contentContainerStyle={styles.imageListContent}
+                                    snapToOffsets={snapToOffsets}
+                                    decelerationRate="fast"
+                                />
+                            ) : (
+                                <View style={styles.centeredContainer}>
+                                    <Text variant="bodyMedium">
+                                        店舗画像が登録されてません。
+                                    </Text>
+                                </View>
+                            )}
+                            {renderFooter()}
+                        </>
+                    )}
+                </BottomSheetView>
             </BottomSheet>
             {/* 画像拡大モーダル */}
             <Portal>
@@ -225,7 +227,7 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
                             source={{ uri: selectedImage?.image_url || '' }}
                             style={{
                                 marginTop: 48,
-                                width: dynamicImageWidth * 0.75,
+                                width: windowWidth * 0.75,
                                 height: height * 0.35
                             }}
                             contentFit="contain"
