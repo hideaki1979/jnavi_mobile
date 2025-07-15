@@ -1,4 +1,4 @@
-import { Dimensions, View, StyleSheet, useWindowDimensions } from "react-native"
+import { View, StyleSheet, useWindowDimensions } from "react-native"
 import {
     ActivityIndicator,
     Button,
@@ -18,7 +18,6 @@ import { StoreImageDownloadData } from "@/src/types/storeImage"
 import { getStoreImages } from "@/src/api/ImageApi"
 import { Image as ExpoImage } from "expo-image"
 
-const { height } = Dimensions.get('window')
 
 // ボトムシートの左右のパディング合計 (16px * 2)
 const HORIZONTAL_MARGIN = 32
@@ -42,7 +41,7 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    const { width: windowWidth } = useWindowDimensions()  // ウィンドウの幅を動的に取得
+    const { width: windowWidth, height: windowHeight } = useWindowDimensions()  // ウィンドウの幅を動的に取得
     const dynamicImageWidth = useMemo(() =>
         Math.floor((windowWidth - HORIZONTAL_MARGIN) * IMAGE_WIDTH_RATIO)
         , [windowWidth])
@@ -228,7 +227,7 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
                             style={{
                                 marginTop: 48,
                                 width: windowWidth * 0.75,
-                                height: height * 0.35
+                                height: windowHeight * 0.35
                             }}
                             contentFit="contain"
                             transition={300}
