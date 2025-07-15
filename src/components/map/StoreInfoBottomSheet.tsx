@@ -8,10 +8,10 @@ import {
     Text,
     useTheme
 } from "react-native-paper"
-import BottomSheet, { BottomSheetFlatList, BottomSheetView } from "@gorhom/bottom-sheet"
+import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { MapStore } from "@/src/types/storeApiResponse"
-import { TouchableOpacity } from "react-native-gesture-handler"
+import { FlatList, TouchableOpacity } from "react-native-gesture-handler"
 import { router } from "expo-router"
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons"
 import { StoreImageDownloadData } from "@/src/types/storeImage"
@@ -23,7 +23,7 @@ const { width, height } = Dimensions.get('window')
 // ボトムシートの左右のパディング合計 (16px * 2)
 const HORIZONTAL_MARGIN = 32
 const IMAGE_WIDTH_RATIO = 0.8
-const IMAGE_WIDTH = (width - HORIZONTAL_MARGIN) * IMAGE_WIDTH_RATIO
+const IMAGE_WIDTH = Math.floor((width - HORIZONTAL_MARGIN) * IMAGE_WIDTH_RATIO)
 const IMAGE_MARGIN_RIGHT = 8
 const SNAP_INTERVAL = IMAGE_WIDTH + IMAGE_MARGIN_RIGHT
 
@@ -179,7 +179,7 @@ export default function StoreInfoBottomSheet({ visible, store, onClose }: StoreI
                         <>
                             {renderHeader(store)}
                             {storeImages.length > 0 ? (
-                                <BottomSheetFlatList
+                                <FlatList
                                     data={storeImages}
                                     keyExtractor={(item: StoreImageDownloadData) => item.id.toString()}
                                     renderItem={renderImageItem}
@@ -297,7 +297,8 @@ const styles = StyleSheet.create({
     },
     imageListContent: {
         paddingVertical: 8,
-        paddingHorizontal: HORIZONTAL_MARGIN / 2 // 左右にパディングを適用
+        paddingLeft: HORIZONTAL_MARGIN / 2, // 左右にパディングを適用
+        paddingRight: HORIZONTAL_MARGIN / 2 - IMAGE_MARGIN_RIGHT
     },
     storeImages: {
         width: IMAGE_WIDTH,
