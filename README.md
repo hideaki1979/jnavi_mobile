@@ -162,18 +162,43 @@ graph TB
         M[音声合成API]
     end
 
+    %% フロントエンド内部の相互作用
     A --> B
     B --> C
+    B --> D
     C --> D
+    A --> D
+
+    %% 認証システムとの相互作用
+    B --> E
+    B --> F
+    B --> G
     D --> E
-    E --> F
-    E --> G
+    D --> G
+
+    %% 外部APIとの相互作用
     B --> H
     B --> I
     B --> J
+    D --> H
+    D --> I
+
+    %% 外部サービスとの相互作用
     B --> K
     B --> L
     B --> M
+    A --> K
+    A --> M
+
+    %% 認証とAPIの相互作用
+    E --> H
+    E --> I
+    E --> J
+
+    %% ストレージとの相互作用
+    G --> L
+    G --> H
+    G --> I
 ```
 
 ## データフロー図
@@ -228,12 +253,30 @@ sequenceDiagram
 
 ### 必須環境変数
 
-| 変数名                             | 説明                              | 例                      |
-| ---------------------------------- | --------------------------------- | ----------------------- |
-| `EXPO_PUBLIC_API_URL`              | バックエンド API のベース URL     | `https://api.jnavi.com` |
-| `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY`  | Google Maps API キー              | `AIzaSyC...`            |
-| `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` | Google 認証用 Web クライアント ID | `123456789-...`         |
-| `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` | Google 認証用 iOS クライアント ID | `123456789-...`         |
+| 変数名                            | 説明                          | 例                      |
+| --------------------------------- | ----------------------------- | ----------------------- |
+| `EXPO_PUBLIC_API_URL`             | バックエンド API のベース URL | `https://api.jnavi.com` |
+| `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` | Google Maps API キー          | `AIzaSyC...`            |
+
+### Firebase 設定（必須）
+
+| 変数名                                     | 説明                         | 例                           |
+| ------------------------------------------ | ---------------------------- | ---------------------------- |
+| `EXPO_PUBLIC_FIREBASE_API_KEY`             | Firebase API キー            | `AIzaSyC...`                 |
+| `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN`         | Firebase 認証ドメイン        | `project.firebaseapp.com`    |
+| `EXPO_PUBLIC_FIREBASE_PROJECT_ID`          | Firebase プロジェクト ID     | `jnavi-project`              |
+| `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Firebase メッセージ送信者 ID | `123456789`                  |
+| `EXPO_PUBLIC_FIREBASE_WEB_APP_ID`          | Firebase Web アプリ ID       | `1:123456789:web:abc123`     |
+| `EXPO_PUBLIC_FIREBASE_ANDROID_APP_ID`      | Firebase Android アプリ ID   | `1:123456789:android:abc123` |
+| `EXPO_PUBLIC_FIREBASE_IOS_APP_ID`          | Firebase iOS アプリ ID       | `1:123456789:ios:abc123`     |
+
+### Google 認証設定（必須）
+
+| 変数名                                 | 説明                                  | 例              |
+| -------------------------------------- | ------------------------------------- | --------------- |
+| `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`     | Google 認証用 Web クライアント ID     | `123456789-...` |
+| `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`     | Google 認証用 iOS クライアント ID     | `123456789-...` |
+| `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` | Google 認証用 Android クライアント ID | `123456789-...` |
 
 ### オプション環境変数
 
@@ -248,8 +291,22 @@ sequenceDiagram
 # .env ファイルの例
 EXPO_PUBLIC_API_URL=https://api.jnavi.com
 EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyC...
+
+# Firebase 設定
+EXPO_PUBLIC_FIREBASE_API_KEY=AIzaSyC...
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=jnavi-project.firebaseapp.com
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=jnavi-project
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789
+EXPO_PUBLIC_FIREBASE_WEB_APP_ID=1:123456789:web:abc123
+EXPO_PUBLIC_FIREBASE_ANDROID_APP_ID=1:123456789:android:abc123
+EXPO_PUBLIC_FIREBASE_IOS_APP_ID=1:123456789:ios:abc123
+
+# Google 認証設定
 EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=123456789-...
 EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=123456789-...
+EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=123456789-...
+
+# オプション設定
 GOOGLE_SERVICES_JSON=./google-services.json
 GOOGLE_SERVICES_INFO_PLIST=./GoogleService-Info.plist
 ```
