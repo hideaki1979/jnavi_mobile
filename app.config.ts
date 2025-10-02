@@ -21,9 +21,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
             ?? "./google-services.json"
     },
     ios: {
-        ...config.ios?.config,
+        ...config.ios,
         bundleIdentifier: config.ios?.bundleIdentifier,
         config: {
+            ...config.ios?.config,
             googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? "YOUR_FALLBACK_KEY"
         },
         googleServicesFile: process.env.GOOGLE_SERVICES_INFO_PLIST
