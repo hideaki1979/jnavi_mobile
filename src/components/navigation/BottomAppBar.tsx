@@ -39,7 +39,7 @@ export default function BottomAppBar({ showRoutes = [] }: BottomAppBarProps) {
                     <View style={styles.appMenu}>
                         <Appbar.Action
                             icon="home"
-                            onPress={() => { router.push('test/paperui_sample') }}
+                            onPress={() => { router.push('test/maptest') }}
                         />
                         <Text style={styles.appText}>home</Text>
                     </View>
