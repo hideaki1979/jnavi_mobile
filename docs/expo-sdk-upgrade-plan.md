@@ -85,8 +85,8 @@ npx expo-doctor                    # 整合性チェック
 # dev-client 再ビルド → 両OS実機確認
 ```
 
-1. **セキュリティ修正(2026-06-12 分)を先にコミット**して切り離す
-2. **52 → 53**: React 19 化を吸収。旧アーキのまま可
+1. **セキュリティ修正(2026-06-12 分)を先にコミット**して切り離す ✅ 実施済み
+2. **52 → 53**: React 19 化を吸収。旧アーキのまま可 ✅ 実施済み(§11 実施記録参照)
 3. **53 → 54**: RN 0.81、target API 35、Android edge-to-edge 対応。**中間リリース可能地点**(Play 要件もここで解消)
 4. **SDK 54 上で `newArchEnabled: true`** に切替え、全画面 QA(地図・モーダル・ドロップダウン・BottomSheet が重点)
 5. **54 → 55 → 56**: reanimated 4 等を吸収
@@ -96,15 +96,15 @@ npx expo-doctor                    # 整合性チェック
 
 2026-06-12 のセキュリティ対応で導入したもの。新 SDK では上流が追従するため、各ステップで `npm ls` / `npm audit` を確認しながら削除する。
 
-| 対策 | 導入理由 | 撤去条件 |
+| 対策 | 導入理由 | 状況(2026-06-12 SDK 53 移行時に再評価済み) |
 |---|---|---|
-| `scripts/patch-tar-cjs-interop.cjs` + postinstall | tar v7 強制により @expo/cli(SDK 52、tar ^6.2.1 固定)の CJS interop が壊れるため | **SDK 54 以降で撤去可**(SDK 54 の CLI は tar ^7.5.2 ネイティブ、SDK 55 以降は node-tar 自体を不使用) |
-| overrides: `tar ^7.5.16` | tar 6.x にパッチ版が存在しない | SDK 54 以降で再評価(上流が v7 宣言済み) |
-| overrides: `uuid ^11.1.1` | xcode / @expo/bunyan が旧 uuid に依存 | 新 SDK で上流追従を確認後に削除 |
-| overrides: `@xmldom/xmldom ^0.8.13` | @expo/plist が ~0.7.7 固定 | 同上 |
-| overrides: `postcss ^8.5.10` | @expo/metro-config が ~8.4.32 固定 | 同上 |
-| overrides: expo-dev-launcher 配下 `ajv ^8.18.0` | expo-dev-launcher が 8.11.0 完全固定 | 同上 |
-| overrides: `brace-expansion ^2.0.2` | 以前のセキュリティ対応 | 同上 |
+| `scripts/patch-tar-cjs-interop.cjs` + postinstall | tar v7 強制により @expo/cli(SDK 52、tar ^6.2.1 固定)の CJS interop が壊れるため | **撤去済み**(SDK 53 の CLI は tar ^7.4.3 ネイティブ。シム無しで extractLocalNpmTarballAsync 実走 OK・prebuild 実走 OK を確認) |
+| overrides: `tar ^7.5.16` | tar 6.x にパッチ版が存在しない | **撤去済み**(@expo/cli 自身の ^7.4.3 宣言から 7.5.16 が自然解決。`npm ls tar` で単一系統を確認) |
+| overrides: `brace-expansion ^2.0.2` | 以前のセキュリティ対応(当時パッチ版なし) | **撤去済み**(minimatch@3 系はパッチ済み 1.1.15、minimatch@9 系は 2.1.1 に自然解決。v1→v2 強制は tar と同じ危険パターンのため解消) |
+| overrides: `@xmldom/xmldom ^0.8.13` | @expo/plist が ~0.7.7 固定 | **撤去済み**(SDK 53 では @expo/plist / plist とも ^0.8.8 宣言になり 0.8.13 へ自然解決 = override が no-op 化) |
+| overrides: `uuid ^11.1.1` | xcode が uuid ^7.0.3 に依存 | **維持必要**(xcode@3.0.1 のまま。次回 SDK で再評価) |
+| overrides: `postcss ^8.5.10` | @expo/metro-config が ~8.4.32 固定 | **維持必要**(SDK 53 の @expo/metro-config 0.20.18 も ~8.4.32 固定のまま) |
+| overrides: expo-dev-launcher 配下 `ajv ^8.18.0` | expo-dev-launcher が 8.11.0 完全固定 | **維持必要**(SDK 53 の expo-dev-launcher も 8.11.0 固定のまま。撤去すると GHSA-2g4f-4pwh-qvx6 が npm audit に再出現することを確認済み) |
 | 直接依存 `axios ^1.17.0` | 脆弱性対応(公式安全基準 1.16.0+) | 撤去不要(維持) |
 
 ## 8. 工数目安
@@ -120,5 +120,52 @@ npx expo-doctor                    # 整合性チェック
 
 - Expo 公式ドキュメント(最新 SDK 構成): https://docs.expo.dev/versions/latest/
 - Expo SDK アップグレード手順: https://docs.expo.dev/workflow/upgrading-expo-sdk-walkthrough/
+- Expo SDK 53 チェンジログ(破壊的変更一覧): https://expo.dev/changelog/sdk-53
 - Google Play target API 要件: https://developer.android.com/google/play/requirements/target-sdk
 - npm 公式レジストリ(expo / expo-template-default / @expo/cli の dist-tags・依存関係、2026-06-12 時点)
+
+## 11. 実施記録(SDK 52 → 53、2026-06-12、ブランチ feature/expo-sdk53-upgrade)
+
+### 到達状態
+
+| 項目 | 結果 |
+|---|---|
+| expo / react-native / react | 53.0.27 / 0.79.6 / 19.0.0 |
+| expo-router / reanimated / maps | 5.1.11 / 3.17.5 / 1.20.1 |
+| @types/react / typescript | 19.0.14 / 5.8.3 |
+| アーキテクチャ | 旧アーキ維持(`newArchEnabled: false` を gradle.properties / Podfile.properties.json で確認) |
+| Android target/compile/minSdk | **35 / 35 / 24**(Google Play API 35 要件をここで解消) |
+| npm audit | 0 件 |
+| `npx expo install --check` / `npx expo-doctor` | 最新一致 / 17/18(残 1 は React Native Directory メタデータ助言のみで非ブロッカー) |
+| `tsc --noEmit` | 既知の VoiceInputButton 2 エラーのみ(§9) |
+| Metro バンドル(`expo export --platform android`) | 成功(package exports 解決での破綻なし) |
+| `expo prebuild --clean` + `pod install` | 成功(下記「ネイティブ再生成の検証」参照) |
+
+### 対応が必要だった点
+
+1. **npm の ERESOLVE(`.npmrc` で恒久対処)**: expo-router 5 のオプショナルピア `react-server-dom-webpack` は、どのバージョンも react 19.0.0 と整合しない(全 19.0.x が react ^19.0.x+1 を要求)。本来「配置されない」のが正解だが、npm arborist の既知バグで配置不能なオプショナルピアが ERESOLVE エラーになるため、`.npmrc` に `legacy-peer-deps=true` を設定(コミット対象)。lockfile 同期済みでも素の `npm install` が再解決で落ちるため、一時フラグでは不十分。バージョン整合の検証は expo-doctor / expo install --check が担う。SDK 54 でも react 19.1.0 と `~19.1.5` 要求で同型の不整合が残る見込みのため、アップグレード毎に再評価。
+2. **tsconfig の moduleResolution 上書き除去**: プロジェクト側の `"moduleResolution": "node"` が SDK 53 ベース設定(bundler + customConditions)と競合し TS5098 になるため削除。
+3. **expo-asset の正式登録**: `src/app/simulation/*` 3 ファイルが import しているのに依存未登録(SDK 52 までは extraneous 残骸で偶然動作)。`npx expo install expo-asset`(~11.1.7)で登録。
+4. **GoogleService-Info.plist をルートに配置**: app.config.ts の `ios.googleServicesFile` が `./GoogleService-Info.plist` を参照するが、実体が ios/ 内(prebuild --clean で消える場所)にしかなかったためルートへコピー(.gitignore 対象のため Git には入らない。ローカル保管必須)。
+
+### ネイティブ再生成の検証(prebuild --clean 後)
+
+設定ソースは app.config.ts(app.json の plugins 配列は app.config.ts が**上書き**する点に注意)。再生成後に以下を確認済み:
+
+- android/app/google-services.json 配置 + google-services gradle プラグイン適用
+- AndroidManifest に Maps API キー(.env から注入)+ 位置情報権限
+- iOS: GoogleService-Info.plist 取り込み、AppDelegate.swift(SDK 53 で Swift 化)に `FirebaseApp.configure()` と firebaseauth reCAPTCHA の openURL ガード、Google Sign-In URL スキーム、static frameworks
+- `pod install` 成功(DEFINES_MODULE 警告は use_frameworks + expo-dev-menu 併用時の既知の非致命警告)
+
+### 残課題・注意
+
+- ~~実機起動確認(Android / iPhone)が未実施~~ → **2026-06-12 両OSで起動確認済み**
+  - Android: Pixel_9_API_35 エミュレータで起動・UI描画 OK。Map 画面の Network Error は SDK 起因ではなく、(1) dev ビルドは `http://10.0.2.2:3000` のローカルバックエンド(`~/develop/gs/Tech_Val/nodedeploytest`、`npm run dev` で起動)を参照する設計で未起動だったこと、(2) DB(Render 無料 PostgreSQL)がプロトコルレベルで接続不能(P1017、本番 API の /maps も 500)なこと、の2点が原因
+  - DB は 2026-06-12 にローカル Docker PostgreSQL へ移行済み(Render 無料 DB はユーザーが削除)。バックエンドリポジトリの docker-compose.yml で `docker compose up -d` → ポート **5433**(Mac にネイティブ PostgreSQL が 5432 を常時占有しているため)。マイグレーション・マスタデータ投入済み。店舗/マップデータは消失のためアプリから再登録が必要。**本番(Render Web サービス)は DATABASE_URL の向き先がないままなので /maps は 500 のまま**
+  - 地図タイル非表示(Google Maps SDK の Authorization failure)も 2026-06-13 解消・表示確認済み。dev ビルドは `android/app/debug.keystore`(Expo テンプレート同梱、SHA-1 `5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25`)で署名されるため、Google Cloud Console 側で Maps API キーにこの SHA-1 + `com.syumeikyo.jNavi` の組の認可が必要だった。**EAS 等でリリースビルドを作る際はリリース署名の SHA-1 を別途追加登録すること**。なお Console で Android アプリ制限の保存が「なし」に戻る事象があり、現状キーは無制限の可能性 → 最低限「API の制限」で Maps SDK for Android に絞ることを推奨
+  - iOS: iPhone 16 Pro シミュレータ(iOS 26.1)でビルド成功・起動・JS ロード・位置情報許可ダイアログ表示まで確認。事前に `xcodebuild -downloadPlatform iOS` で iOS 26.1 プラットフォーム(8.3GB)の導入が必要だった(Xcode 26.1.1 更新後に未導入だとビルド先が認識されず error 70)
+  - 開発環境メモ: ANDROID_HOME 未設定だと expo がエミュレータを自動起動できない → ~/.zshrc に `export ANDROID_HOME=$HOME/Library/Android/sdk` + platform-tools/emulator の PATH 追記済み
+- app.json の expo-location プラグインオプション(フォアグラウンドサービス等)は app.config.ts の plugins 上書きにより**以前から無効**(現行挙動と同一のため今回維持。フォアグラウンドサービスが必要になったら app.config.ts 側へ追記)
+- EAS Build を使う場合、EXPO_PUBLIC_* 環境変数(特に Maps API キー)と、iOS ビルド時は GOOGLE_SERVICE_INFO_PLIST(file タイプ)を EAS 環境変数に登録しておくこと
+- edge-to-edge は未対応のまま(SDK 54 で必須化。§6 ステップ 3 で対応)
+- SDK 52 のネイティブディレクトリは /tmp/jnavi-native-backup-sdk52 に退避済み(起動確認完了後は不要)
