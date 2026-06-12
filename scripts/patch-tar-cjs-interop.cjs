@@ -23,9 +23,17 @@ try {
 
 const targets = new Set([entry, entry.replace(/index\.min\.js$/, 'index.js')]);
 for (const file of targets) {
-  if (!fs.existsSync(file)) continue;
-  const src = fs.readFileSync(file, 'utf8');
-  if (src.includes(MARKER)) continue;
-  fs.appendFileSync(file, SHIM);
-  console.log(`[patch-tar-cjs-interop] applied: ${path.relative(path.join(__dirname, '..'), file)}`);
+  try {
+    if (!fs.existsSync(file)) continue;
+    const src = fs.readFileSync(file, 'utf8');
+    if (src.includes(MARKER)) continue;
+    fs.appendFileSync(file, SHIM);
+    console.log(`[patch-tar-cjs-interop] applied: ${path.relative(path.join(__dirname, '..'), file)}`);
+  } catch (error) {
+    // シム適用失敗で npm install 全体を落とさない(影響は prebuild 時のテンプレート展開のみ)
+    console.warn(
+      `[patch-tar-cjs-interop] WARNING: シム適用に失敗しました: ${file}\n` +
+      `  prebuild / テンプレート展開が TypeError で失敗する可能性があります: ${error.message}`
+    );
+  }
 }
