@@ -48,10 +48,17 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
             "expo-build-properties",
             {
                 ios: {
-                    useFrameworks: "static"
+                    useFrameworks: "static",
+                    // SDK54 既知問題: useFrameworks:static + RN プリコンパイル済みバイナリで
+                    // 「must be imported from module ... before it is required」が発生する
+                    // (react-native-maps 等)。Expo 公式の暫定対処として RN をソースビルドする。
+                    // 参考: expo/expo#39233
+                    buildReactNativeFromSource: true
                 }
             }
         ],
-        "expo-font"
+        "expo-font",
+        // SDK54 + useFrameworks:static の非モジュラヘッダ問題(react-native-maps等)対処
+        "./plugins/withNonModularHeaders"
     ]
 })

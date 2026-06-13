@@ -87,8 +87,8 @@ npx expo-doctor                    # 整合性チェック
 
 1. **セキュリティ修正(2026-06-12 分)を先にコミット**して切り離す ✅ 実施済み
 2. **52 → 53**: React 19 化を吸収。旧アーキのまま可 ✅ 実施済み(§11 実施記録参照)
-3. **53 → 54**: RN 0.81、target API 35、Android edge-to-edge 対応。**中間リリース可能地点**(Play 要件もここで解消)
-4. **SDK 54 上で `newArchEnabled: true`** に切替え、全画面 QA(地図・モーダル・ドロップダウン・BottomSheet が重点)
+3. **53 → 54**: RN 0.81、target API 35、Android edge-to-edge 対応。**中間リリース可能地点**(Play 要件もここで解消)✅ 実施済み(§12 実施記録参照)
+4. **SDK 54 上で `newArchEnabled: true`** に切替え、全画面 QA(地図・モーダル・ドロップダウン・BottomSheet が重点)✅ ステップ3と同時に実施済み(§12)。実機 QA はユーザー実施分が残(§12 末尾チェックリスト)
 5. **54 → 55 → 56**: reanimated 4 等を吸収
 6. 完了時に overrides・postinstall シムを棚卸し(§7)
 
@@ -169,3 +169,87 @@ npx expo-doctor                    # 整合性チェック
 - EAS Build を使う場合、EXPO_PUBLIC_* 環境変数(特に Maps API キー)と、iOS ビルド時は GOOGLE_SERVICE_INFO_PLIST(file タイプ)を EAS 環境変数に登録しておくこと
 - edge-to-edge は未対応のまま(SDK 54 で必須化。§6 ステップ 3 で対応)
 - SDK 52 のネイティブディレクトリは /tmp/jnavi-native-backup-sdk52 に退避済み(起動確認完了後は不要)
+
+## 12. 実施記録(SDK 53 → 54 + New Architecture、2026-06-13、ブランチ feature/expo-sdk54-upgrade)
+
+§6 のステップ3(53→54)とステップ4(New Architecture 有効化)を**同時実施**した。SDK 54 は旧アーキをサポートする最後の SDK だが、ここで新アーキへ移行しておくことで SDK 55/56 への道を開き、かつ reanimated を v4 化できる(下記)。
+
+> **§4・§5 の表記補正**: §4 の表は「SDK 54 = reanimated ~4.1.1 / 旧アーキ最後」、§5 は「reanimated 4 は新アーキ必須」と一見矛盾していたが、正しくは **reanimated 4 は New Architecture 専用**(`react-native-worklets` を導入)。旧アーキ維持なら reanimated 3 据え置きが必要だった。本移行では新アーキを採用したため reanimated 4.1.x をそのまま使用できる。
+
+### 到達状態
+
+| 項目 | 結果 |
+|---|---|
+| expo / react-native / react / react-dom | 54.0.35 / 0.81.5 / 19.1.0 / 19.1.0 |
+| expo-router / reanimated / worklets | 6.0.24 / 4.1.7 / 0.5.1(新規) |
+| gesture-handler / screens / safe-area-context | 2.28.0 / 4.16.0 / 5.6.0 |
+| @types/react / typescript | 19.1.x / 5.9.3 |
+| react-native-maps | 1.20.1(据置・新アーキ interop で動作) |
+| アーキテクチャ | **New Architecture**(`newArchEnabled: true` を app.json / gradle.properties / Podfile.properties.json で確認) |
+| Android target/compile/minSdk | **35 / 35 / 24**(expo-root-project 既定。Google Play API 35 要件維持) |
+| edge-to-edge | **有効**(`edgeToEdgeEnabled=true`。SDK 54 で Android 強制) |
+| npm audit | **0 件** |
+| `npx expo install --check` / `npx expo-doctor` | 最新一致 / **18/18 全合格**(SDK 53 の 17/18 から改善) |
+| `tsc --noEmit` | 既知の VoiceInputButton 2 エラーのみ(§9) |
+| Metro バンドル(`expo export --platform android`) | 成功(新アーキ + reanimated 4 worklets 解決確認) |
+| `expo prebuild --clean` + `pod install` | 成功 |
+| **実機 dev-client ビルド/起動** | **iOS(iPhone 16 sim)/ Android(Pixel 9 / API 35)とも成功**(2026-06-13。下記 iOS 修正7・8 を適用後) |
+
+### 対応が必要だった点
+
+1. **クリーン install は ERESOLVE 0 件**: §11 で「react 19.1 で再衝突しうる」と予告していたが、`.npmrc` なし・`legacy-peer-deps=false` のデフォルト `npm install` が exit 0 / 脆弱性 0 件で成功。expo-router 6 / react 19.1 の組合せでピア衝突は発生しなかった。`.npmrc` は復活させていない。
+2. **`react-native-worklets@0.5.1` を明示依存に追加**: reanimated 4.1.x の必須ピア。無いと podspec 検証が失敗する。
+3. **babel.config.js から `react-native-reanimated/plugin` を削除**: SDK 54 の babel-preset-expo が reanimated/worklets プラグインを自動設定する。明示指定すると「plugin moved to react-native-worklets」警告 + 重複の原因になるため presets のみ残した。
+4. **`babel-preset-expo@~54.0.11` を devDependency に明示追加**: SDK 54 では babel-preset-expo が `expo/node_modules` 配下にネストされ、トップレベルの babel.config.js から `Cannot find module 'babel-preset-expo'` で Metro バンドルが失敗した。直接依存化でトップレベル配置にして解決。
+5. **`expo-system-ui@~6.0.9` を追加**: prebuild が「userInterfaceStyle: Install expo-system-ui」と助言。app.json の `userInterfaceStyle: "light"`(ライト固定)を Android で効かせるために必要。追加後に助言は解消。
+6. **typescript を ~5.9.2 へ**(expo 推奨)。`expo install typescript` が dependencies 側に二重登録したため、devDependencies 側に一本化(5.9.3 解決)。
+7. **【iOS 実機ビルド】static frameworks の非モジュラヘッダ対処(config plugin 新規)**: `useFrameworks: "static"`(Firebase 要求)下で react-native-maps 等の Pod が React のヘッダを非モジュラ include し、`-Werror` により `include of non-modular header inside framework module 'react_native_maps.AIRMap' ... RCTComponent.h` で xcodebuild が code 65 失敗。`plugins/withNonModularHeaders.js`(`withDangerousMod`)を**新規作成**し、生成される ios/Podfile の post_install で全 Pod ターゲットに `CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES = YES` を付与、`app.config.ts` の plugins に登録。Podfile は CNG で再生成されるため config plugin 化が必須(手編集は prebuild で消える)。参考: expo/expo#39607。
+8. **【iOS 実機ビルド】`buildReactNativeFromSource: true` を追加**: 7 の解決後、AirGoogleMaps で `declaration of 'RCTViewManager' must be imported from module ... before it is required` が発生。SDK 54 の高速 iOS ビルド機能(RN プリコンパイル済みバイナリ + 明示モジュール)と static frameworks の組合せによる**既知問題**(expo/expo#39233、Expo チームが修正作業中)。Expo 公式の暫定対処に従い `expo-build-properties.ios` に `buildReactNativeFromSource: true` を追加(RN をソースビルド)。初回 iOS ビルドは大幅に長くなるが両 OS で起動成功。**Expo 側修正後は撤去して高速ビルドへ戻せる**。代替策として react-native-maps を 1.26.x へ更新する手もあるが、Expo 推奨版(1.20.1)から外れ `expo install --check` 抑制が必要なため非採用。
+
+> **教訓**: 7・8 は静的検証(`expo export` の Metro バンドル / `prebuild` の config 生成)では**検出されず**、実機 dev-client ビルド(xcodebuild)で初めて顕在化した。SDK アップグレードの「完了」判定にはネイティブビルド+実機起動まで含める必要がある。Android はこの問題と無関係(別ビルドシステム)で、JDK 17 で素直にビルド成功(`BUILD SUCCESSFUL 6m46s`)。
+
+### overrides 棚卸し(§7 の再評価)
+
+upgrade 後に overrides を全撤去して `npm install` + `npm audit` した実証結果に基づき判定:
+
+| 対策 | SDK 54 での状況 | 判定 |
+|---|---|---|
+| overrides `uuid ^11.1.1` | xcode@3.0.1 が今も `uuid ^7.0.3` 固定。7.0.3 は **GHSA-w5hq-g745-h8pq**(v3/v5/v6 の buffer 境界チェック欠落)に該当 | **維持** |
+| overrides `postcss ^8.5.10` | @expo/metro-config@54.0.16 が `~8.4.32` 固定 → 8.4.49 解決だが**新しい** advisory **GHSA-qx2v-qp2m-jg93**(PostCSS XSS、≥8.5.10 必要)に該当 | **維持** |
+| overrides `expo-dev-launcher > ajv ^8.18.0` | expo-dev-launcher@6.0.21 が固定 `8.11.0` → **範囲 `^8.11.0`** に変化。override 無しでも 8.20.0(安全)に自然解決し audit に出現せず | **撤去**(no-op 化) |
+
+撤去後の最終 overrides は `uuid` + `postcss` の 2 件。撤去前は 17 件の moderate(上記 2 advisory のカスケード)、撤去後 `npm audit` 0 件を確認。
+
+### ネイティブ再生成の検証(prebuild --clean 後)
+
+- `newArchEnabled=true` が android/gradle.properties と ios/Podfile.properties.json の両方に伝播
+- `edgeToEdgeEnabled=true` / `expo.edgeToEdgeEnabled=true`(SDK 54 で Android 強制)
+- android/app/google-services.json 配置 + google-services gradle プラグイン適用
+- AndroidManifest に Maps API キー + 位置情報権限(FINE / COARSE)
+- iOS: ios/jNavi/GoogleService-Info.plist 取り込み、AppDelegate.swift に FirebaseApp.configure + firebaseauth reCAPTCHA openURL ガード、static frameworks、`pod install` 成功
+- GoogleService-Info.plist / google-services.json はルートに配置済み(.gitignore 対象、ローカル保管必須 — §11 と同じ)
+
+### 実機起動確認(2026-06-13 実施、両 OS OK)
+
+dev-client ビルド + 実機(シミュレータ/エミュレータ)起動を実施し、**両 OS とも起動成功**:
+
+- ✅ **iOS(iPhone 16 sim)**: 上記 iOS 修正7・8 適用後にビルド成功・起動(ユーザー確認済み)
+- ✅ **Android(Pixel 9 / API 35)**: `BUILD SUCCESSFUL`(JDK 17 使用)、`com.syumeikyo.jNavi` インストール・起動。**edge-to-edge 正常**(ステータスバーと本文の被りなし)、店舗情報登録フォーム(テキスト入力・トグル・チェックボックス・展開パネル)の描画と入力を画面で確認(ユーザー確認済み)
+- ℹ️ Android 起動直後に `Unable to activate keep awake`(`expo-keep-awake`)の LogBox エラーが出るが、**Expo が dev 中に自動有効化する keep-awake の起動レースによる良性エラー**。アプリコードは未使用、プロセスはクラッシュせず(`FATAL EXCEPTION` 無し)、**本番ビルドには出ない**。Dismiss で問題なし
+- Metro は 1 インスタンス(8081)で iOS/Android 両 dev-client に同時配信できる(`adb reverse tcp:8081 tcp:8081`)。同時起動可
+
+### 起動後の機能 QA(継続。New Architecture 重点)
+
+起動は通ったので、残りは画面操作での機能確認。**Fabric レンダリング・ネイティブ interop は実機操作でのみ検証可能**。以下を重点確認:
+
+- [ ] **地図(react-native-maps 1.20.1)**: タイル表示・現在地・マーカー・StoreInfoBottomSheet(新アーキ最重要機能)
+- [ ] **react-native-modal 14.0.0-rc.1**: 開閉・アニメーション。§5 で「新アーキで最も懸念」とした**更新停止 RC 版**。崩れる場合は `@gorhom/bottom-sheet` か RN 製 `Modal` への置換を検討
+- [ ] **react-native-element-dropdown 2.12.4**: 表示・選択(JS ベースだが新アーキ要確認)
+- [ ] **@gorhom/bottom-sheet 5.x**: ジェスチャ・スナップ(reanimated 4 / gesture-handler 2.28 連携)
+- [ ] reanimated 由来アニメーション全般(react-native-paper のリップル等)
+- [ ] **edge-to-edge**: 画面上下端のセーフエリア、ステータスバー/ナビゲーションバーへのコンテンツ被り(必要なら app.json に `androidNavigationBar.enforceContrast` 追加)
+- [ ] **ライトモード固定**: expo-system-ui 追加後、Android をダークモード端末で起動してもライト表示が維持されること
+- [ ] 位置情報許可フロー(expo-location 19)・画像表示(expo-image 3、ExpoImage を image_upload.tsx / StoreInfoBottomSheet.tsx で使用)
+- [ ] Google ログイン / Firebase Auth(@react-native-firebase 22 / google-signin 13 の新アーキ動作)
+- [ ] dev ビルドの Maps 認可は §11 同様 `android/app/debug.keystore` の SHA-1 を Google Cloud Console に登録要(リリース署名は別途)。ローカルバックエンドは Docker PostgreSQL(ポート 5433)
+- 既知の VoiceInputButton 2 エラー(§9)は本タスク対象外で未解消のまま
