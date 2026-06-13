@@ -63,7 +63,7 @@
 | ライブラリ | 現在 | リスク |
 |---|---|---|
 | react-native-maps | 1.18.0 | 新アーキ対応版へ要更新(対応バージョン要確認)。地図はアプリの中核機能のため最重点 |
-| react-native-modal | 14.0.0-rc.1 | **事実上更新が停止している RC 版**。新アーキで最も懸念。@gorhom/bottom-sheet 等への置換も視野 |
+| react-native-modal | ~~14.0.0-rc.1~~ → **削除済** | **未 import の孤立依存と判明 → 削除**(SDK 55 §13)。モーダルは react-native-paper の `Modal`/`Portal`、ボトムシートは @gorhom/bottom-sheet が担当しており、本パッケージはソースから一度も使われていなかった。「更新停止 RC を抱える」懸念ごと解消 |
 | react-native-element-dropdown | 2.12.4 | 新アーキ対応状況の確認が必要 |
 
 ### 追従可能(バージョン更新で対応)
@@ -89,8 +89,9 @@ npx expo-doctor                    # 整合性チェック
 2. **52 → 53**: React 19 化を吸収。旧アーキのまま可 ✅ 実施済み(§11 実施記録参照)
 3. **53 → 54**: RN 0.81、target API 35、Android edge-to-edge 対応。**中間リリース可能地点**(Play 要件もここで解消)✅ 実施済み(§12 実施記録参照)
 4. **SDK 54 上で `newArchEnabled: true`** に切替え、全画面 QA(地図・モーダル・ドロップダウン・BottomSheet が重点)✅ ステップ3と同時に実施済み(§12)。実機 QA はユーザー実施分が残(§12 末尾チェックリスト)
-5. **54 → 55 → 56**: reanimated 4 等を吸収
-6. 完了時に overrides・postinstall シムを棚卸し(§7)
+5. **54 → 55**: reanimated 4.2 / RN 0.83 / React 19.2 吸収。**新アーキは SDK 54 で済のため必須化はクリア済み**。config-plugins の hoist 問題と react-native-maps の Google Maps 統合方式変更が要対応 ✅ 実施済み(§13 実施記録参照)
+6. **55 → 56**: 最新版(reanimated 4.3 等)へ。次回区切り
+7. 完了時に overrides・postinstall シムを棚卸し(§7)
 
 ## 7. 現行セキュリティ対策の棚卸し(アップグレード時に撤去・再評価するもの)
 
@@ -243,7 +244,7 @@ dev-client ビルド + 実機(シミュレータ/エミュレータ)起動を実
 起動は通ったので、残りは画面操作での機能確認。**Fabric レンダリング・ネイティブ interop は実機操作でのみ検証可能**。以下を重点確認:
 
 - [ ] **地図(react-native-maps 1.20.1)**: タイル表示・現在地・マーカー・StoreInfoBottomSheet(新アーキ最重要機能)
-- [ ] **react-native-modal 14.0.0-rc.1**: 開閉・アニメーション。§5 で「新アーキで最も懸念」とした**更新停止 RC 版**。崩れる場合は `@gorhom/bottom-sheet` か RN 製 `Modal` への置換を検討
+- [x] ~~**react-native-modal 14.0.0-rc.1**~~: **SDK 55 §13 で未 import の孤立依存と判明し削除済み**(QA 不要に)。実際のモーダルは react-native-paper の `Modal`/`Portal`、シートは @gorhom/bottom-sheet
 - [ ] **react-native-element-dropdown 2.12.4**: 表示・選択(JS ベースだが新アーキ要確認)
 - [ ] **@gorhom/bottom-sheet 5.x**: ジェスチャ・スナップ(reanimated 4 / gesture-handler 2.28 連携)
 - [ ] reanimated 由来アニメーション全般(react-native-paper のリップル等)
@@ -252,4 +253,85 @@ dev-client ビルド + 実機(シミュレータ/エミュレータ)起動を実
 - [ ] 位置情報許可フロー(expo-location 19)・画像表示(expo-image 3、ExpoImage を image_upload.tsx / StoreInfoBottomSheet.tsx で使用)
 - [ ] Google ログイン / Firebase Auth(@react-native-firebase 22 / google-signin 13 の新アーキ動作)
 - [ ] dev ビルドの Maps 認可は §11 同様 `android/app/debug.keystore` の SHA-1 を Google Cloud Console に登録要(リリース署名は別途)。ローカルバックエンドは Docker PostgreSQL(ポート 5433)
+- 既知の VoiceInputButton 2 エラー(§9)は本タスク対象外で未解消のまま
+
+## 13. 実施記録(SDK 54 → 55、2026-06-13、ブランチ feature/expo-sdk55-upgrade)
+
+§6 のステップ5(54→55)。New Architecture は SDK 54 で移行済みのため SDK 55 の「新アーキ必須化」は前提クリア。今回の山は New Arch ではなく **(A) @expo/config-plugins の hoist 問題** と **(B) react-native-maps の Google Maps 統合方式変更** の 2 点で、いずれも JS/ネイティブ設定の静的検証(prebuild + pod install)で顕在化した。
+
+### 到達状態
+
+| 項目 | 結果 |
+|---|---|
+| expo / react-native / react / react-dom | 55.0.26 / 0.83.6 / 19.2.0 / 19.2.0 |
+| expo-router / reanimated / worklets | 55.0.16 / 4.2.1 / 0.7.4 |
+| gesture-handler / screens / safe-area-context | 2.30.1 / 4.23.0 / 5.6.2 |
+| @types/react / typescript | 19.2.17 / 5.9.3 |
+| react-native-maps | **1.20.1 → 1.27.2**(Expo 推奨が更新。iOS 統合方式が変わり対応が必要だった。下記3) |
+| babel-preset-expo(devDep) | ~55.0.8(解決 55.0.22) |
+| アーキテクチャ | **New Architecture**(app.json の `newArchEnabled` は SDK 55 で廃止 → 削除。prebuild が gradle.properties / Podfile.properties.json に引き続き `newArchEnabled=true` を書き出すため有効のまま。下記2) |
+| Android target/compile/minSdk | **36 / 36 / 24**(expo-modules-core 既定。SDK 54 の target 35 から **36** へ引き上げ = Google Play の次期要件先取り) |
+| edge-to-edge | **有効維持**(`edgeToEdgeEnabled=true`) |
+| npm audit | **0 件** |
+| `npx expo install --check` / `npx expo-doctor` | 最新一致 / **19/19 全合格**(SDK 54 の 18/18 から検査項目が 1 増。新設の config schema チェックで下記2 を検出) |
+| `tsc --noEmit` | 既知の VoiceInputButton 2 エラーのみ(§9)。SDK 55 化による新規型エラーなし(React 19.2 / RN 0.83) |
+| Metro バンドル(`expo export --platform android`) | 成功 |
+| `expo prebuild --clean` + `pod install` | **成功**(`react-native-maps/Google` subspec + GoogleMaps 9.4.0 / Google-Maps-iOS-Utils 6.1.0 解決を Podfile.lock で確認) |
+| **実機 dev-client ビルド/起動** | **未実施**(ユーザー実施分。下記チェックリスト) |
+
+### 対応が必要だった点
+
+1. **【最重要・SDK 55 固有】クリーンインストールが必須(@expo/config-plugins の hoist 問題)**: in-place の `npx expo install expo@^55 --fix` 直後、`@expo/config-plugins@55.0.10` が `node_modules/expo/node_modules/` 配下にネストされたまま **top-level に hoist されなかった**。このため `@react-native-firebase/app` の config plugin(`require('@expo/config-plugins')`)と自作 `plugins/withNonModularHeaders.js`(`require('@expo/config-plugins/build/utils/generateCode')` の deep import)が **どちらも MODULE_NOT_FOUND** となり、`expo install --check` で「Skipping config plugin check: Unable to resolve a valid config plugin for @react-native-firebase/app」が出た(prebuild も同根で失敗する状態)。`rm -rf node_modules package-lock.json && npm install` の **クリーンインストールで lockfile を再生成すると top-level に hoist** され、firebase plugin / 自作 plugin の両方が解決(`require.resolve` で実証)。**教訓: SDK 本体メジャー更新では in-place の --fix 後に lockfile を一度再生成すること**(in-place 更新は旧ツリーの nest 構造を引きずる)。
+2. **`newArchEnabled` プロパティの削除**: SDK 55 で New Architecture が唯一のアーキテクチャになり、app.json の config schema から `newArchEnabled` が**廃止**された。expo-doctor の新設チェック(19番目「Check Expo config schema」)が `should NOT have additional property 'newArchEnabled'` で fail。app.json から該当行を削除して 19/19。**新アーキは無効化されず**、prebuild が gradle.properties(`newArchEnabled=true`)と Podfile.properties.json に引き続き書き出す(必須なので既定 on)。
+3. **【最重要】react-native-maps 1.27.2 の Google Maps 統合方式変更(iOS `pod install` 失敗)**: react-native-maps は別個の `react-native-google-maps.podspec` を**廃止**し、単一 `react-native-maps.podspec` の `Google` subspec(`react-native-maps/Google`、GoogleMaps 9.4.0 + Google-Maps-iOS-Utils 6.1.0 依存)へ統合した。一方 Expo 組み込みの maps フォールバック(`@expo/config-plugins/build/ios/Maps.js` の `withMaps`)は**今も廃止済みの `pod 'react-native-google-maps'` を生成**するため、`pod install` が **`No podspec found for react-native-google-maps`** で失敗した。
+   - **原因の特定**: Expo は `@expo/cli` 配下 prebuild-config の `unversioned/react-native-maps.js` で `createLegacyPlugin({ packageName: 'react-native-maps', fallback: [...withMaps...] })` を適用する。これは `withStaticPlugin` で **plugins 配列に明示登録された react-native-maps プラグインを探し、無ければ fallback(旧 withMaps)を使う + `createRunOncePlugin` で dedup** する設計。本プロジェクトは react-native-maps を plugins 配列に未登録だったため fallback(旧 pod 行)が走っていた。
+   - **対処**: react-native-maps 1.27.2 が**同梱する公式 config plugin**(`app.plugin.js`)を `app.config.ts` の plugins 配列に明示登録し、`iosGoogleMapsApiKey` / `androidGoogleMapsApiKey` を props で渡した。結果、(1) Podfile に正しい `pod 'react-native-maps/Google', :path => rn_maps_path`、(2) iOS Info.plist の `GMSApiKey`、(3) AppDelegate の `GMSServices.provideAPIKey`(`#if canImport(GoogleMaps)` ガード付き)、(4) AndroidManifest の `com.google.android.geo.API_KEY` を生成。**run-once dedup により Expo 組み込みフォールバックがスキップ**され旧 pod 行は消滅。`pod install` 成功(141 pods)。
+   - 注: `app.config.ts` の `ios.config.googleMapsApiKey` / `android.config.googleMaps.apiKey` は維持(フォールバックが skip される限り無害。万一の保険)。API キーは従来同様 `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY`(.env)。
+
+### overrides 棚卸し(§7 の再評価。全撤去 → クリーン install → audit 実証)
+
+| 対策 | SDK 55 での状況 | 判定 |
+|---|---|---|
+| overrides `uuid ^11.1.1` | xcode@3.0.1 が今も `uuid ^7.0.3` 固定 → 7.0.3 は **GHSA-w5hq-g745-h8pq** 該当。override 撤去で 12 件 moderate(全て uuid 単一カスケード) | **維持** |
+| overrides `postcss ^8.5.10` | `@expo/metro-config@55.0.23` が追従し postcss が **8.5.15** に自然解決(GHSA-qx2v-qp2m-jg93 の閾値 8.5.10 以上で安全)。override 無しでも audit に出現せず | **撤去**(no-op 化) |
+
+撤去後の最終 overrides は **`uuid` の 1 件のみ**(SDK 54 は uuid + postcss の 2 件)。撤去後 `npm audit` **0 件** を確認。
+
+### 不使用依存の削除(react-native-modal)
+
+§5 で「新アーキで最も懸念」とした **react-native-modal@14.0.0-rc.1**(更新停止 RC)を精査したところ、**ソースから一度も import されていない孤立依存**だった。3 系統で実証:
+
+- `npm ls react-native-modal` → 直接依存のみで他パッケージからの **transitive 依存なし**
+- 全リポジトリ文字列検索 → ヒットは `package.json` / `package-lock.json` / 本ドキュメントのみ。**`.ts`/`.tsx`/`.js`/`.jsx` に出現ゼロ**
+- git 全履歴(`-S` pickaxe)→ `src/` で react-native-modal が登場したコミット**ゼロ**。`c3345b4`【第二形態】MAP画面一旦完了 で package.json に追加されたが import 痕跡は皆無
+
+MAP 画面開発時に追加したものの、実際のモーダル UI は **react-native-paper の `Modal` + `Portal`**(`StoreInfoBottomSheet.tsx` の画像拡大モーダル)と **@gorhom/bottom-sheet**(店舗情報シート)で実装され、本パッケージは未使用のまま残っていた。未 import パッケージは Metro バンドルに含まれず実行もされないため、「新アーキで最も懸念」は**実体の無い懸念**だった。
+
+したがって代替への移行ではなく **`npm uninstall react-native-modal` で削除**(唯一の連れ依存 react-native-animatable も自動 prune、計 2 パッケージ除去)。削除後の静的検証は全 green: **npm audit 0 / expo-doctor 19/19 / expo install --check 最新一致 / tsc 既知の VoiceInputButton 2 件のみ**。これで SDK 55 ブランチは overrides も依存も一段クリーンになった。
+
+### iOS 静的フレームワーク修正(SDK 54 §12 の7・8)の SDK 55 での扱い
+
+| 修正 | SDK 55 での扱い |
+|---|---|
+| `plugins/withNonModularHeaders.js`(config plugin) | **維持**。クリーン install で `@expo/config-plugins` が hoist された後は deep import が解決し、Podfile post_install への `CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES=YES` 注入を確認 |
+| `expo-build-properties.ios.buildReactNativeFromSource: true`(expo/expo#39233 回避) | **維持(要再評価)**。`pod install` は成功するが、#39233 の AirGoogleMaps コンパイルエラーは **実機 xcodebuild でのみ顕在化**するため当環境では SDK 55 + react-native-maps 1.27.2 で撤去可能かを判定不能。実機 iOS ビルド時に **一度 `buildReactNativeFromSource` を外して**高速ビルドが通るか試し、通れば撤去(初回ビルドが大幅短縮) |
+
+### ネイティブ再生成の検証(prebuild --clean 後)
+
+- `newArchEnabled=true` / `edgeToEdgeEnabled=true` が android/gradle.properties に伝播。Podfile.properties.json に `ios.useFrameworks: static` / `ios.buildReactNativeFromSource: true`
+- Podfile に `pod 'react-native-maps/Google'`(正)+ withNonModularHeaders の post_install 注入。Podfile.lock に GoogleMaps 9.4.0 / Google-Maps-iOS-Utils 6.1.0 / react-native-maps/Google 1.27.2
+- iOS AppDelegate に GoogleMaps init + firebaseauth reCAPTCHA openURL ガード(@react-native-firebase/auth)。Info.plist に GMSApiKey
+- AndroidManifest に Maps geo API_KEY + 位置情報権限。android/app/google-services.json 配置
+- GoogleService-Info.plist / google-services.json はルートに配置済み(.gitignore 対象、ローカル保管必須 — §11・§12 と同じ)
+
+### 残作業: 実機 dev-client ビルド + 機能 QA(ユーザー実施)
+
+静的検証(audit 0 / doctor 19/19 / tsc / Metro export / prebuild + pod install)は全 green。SDK 54 §12 の教訓どおり「完了」判定には実機ビルド + 起動 + Fabric 操作確認が必須。重点:
+
+- [ ] **iOS dev-client ビルド/起動**(`npx expo run:ios`)。`buildReactNativeFromSource` を外して試行 → 通れば撤去(上表)
+- [ ] **Android dev-client ビルド/起動**(`npx expo run:android`、JDK 17 必須。RN 0.83 でも JDK 17。target 36 化に伴う Gradle/AGP 警告の有無)
+- [ ] **地図(react-native-maps 1.27.2)**: タイル表示・現在地・マーカー・StoreInfoBottomSheet。**maps メジャー更新(1.20→1.27)のため最重点**。dev ビルドの Maps 認可は `android/app/debug.keystore` の SHA-1 を Google Cloud Console に登録要(§11・§12 同様)
+- [ ] element-dropdown 2.12.4 / @gorhom/bottom-sheet 5.2.14(reanimated 4.2.1 / gesture-handler 2.30.1 連携)。**react-native-modal は未使用と判明し削除済み(下記)のため QA 対象外**
+- [ ] edge-to-edge / ライトモード固定 / 位置情報許可 / 画像表示(expo-image) / Google ログイン・Firebase Auth
+- ローカルバックエンドは Docker PostgreSQL(ポート 5433)
 - 既知の VoiceInputButton 2 エラー(§9)は本タスク対象外で未解消のまま

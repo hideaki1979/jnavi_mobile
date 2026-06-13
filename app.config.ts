@@ -41,6 +41,25 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
                 root: "./src/app"
             }
         ],
+        // react-native-maps 1.27.x は iOS podspec を単一化し Google Maps を
+        // `react-native-maps/Google` subspec に変更した。Expo 組み込みの旧 maps
+        // フォールバック(@expo/config-plugins ios/Maps.js)は今も廃止済みの
+        // `pod 'react-native-google-maps'` を生成するため pod install が
+        // 「No podspec found for react-native-google-maps」で失敗する。
+        // react-native-maps が同梱する公式 config plugin を plugins 配列に
+        // 明示登録すると、(1) 正しい `pod 'react-native-maps/Google'` 生成、
+        // (2) iOS GMSApiKey / AppDelegate GMSServices.provideAPIKey、
+        // (3) Android の geo API_KEY meta-data を設定し、かつ run-once dedup で
+        // Expo 組み込みフォールバックがスキップされる。API キーは props で渡す。
+        [
+            "react-native-maps",
+            {
+                iosGoogleMapsApiKey:
+                    process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? "YOUR_FALLBACK_KEY",
+                androidGoogleMapsApiKey:
+                    process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? "YOUR_FALLBACK_KEY"
+            }
+        ],
         "@react-native-firebase/app",
         "@react-native-firebase/auth",
         "@react-native-google-signin/google-signin",
