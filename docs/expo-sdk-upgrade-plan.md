@@ -295,7 +295,7 @@ dev-client ビルド + 実機(シミュレータ/エミュレータ)起動を実
 | overrides `uuid ^11.1.1` | xcode@3.0.1 が今も `uuid ^7.0.3` 固定 → 7.0.3 は **GHSA-w5hq-g745-h8pq** 該当。override 撤去で 12 件 moderate(全て uuid 単一カスケード) | **維持** |
 | overrides `postcss ^8.5.10` | `@expo/metro-config@55.0.23` が追従し postcss が **8.5.15** に自然解決(GHSA-qx2v-qp2m-jg93 の閾値 8.5.10 以上で安全)。override 無しでも audit に出現せず | **撤去**(no-op 化) |
 
-撤去後の最終 overrides は **`uuid` の 1 件のみ**(SDK 54 は uuid + postcss の 2 件)。撤去後 `npm audit` **0 件** を確認。
+撤去後の最終 overrides は **`uuid` の 1 件のみ**(SDK 54 は uuid + postcss の 2 件)。撤去後 `npm audit` **0 件** を確認。**※その後、セキュリティではなく EAS の `npm ci` 対策として `@react-native-async-storage/async-storage` の override を 1 件追加した(理由は下記「EAS Build/Update の npm ci 失敗」節)。最終的な overrides は `uuid` + `async-storage` の 2 件。**
 
 ### 不使用依存の削除(react-native-modal)
 
@@ -308,6 +308,29 @@ dev-client ビルド + 実機(シミュレータ/エミュレータ)起動を実
 MAP 画面開発時に追加したものの、実際のモーダル UI は **react-native-paper の `Modal` + `Portal`**(`StoreInfoBottomSheet.tsx` の画像拡大モーダル)と **@gorhom/bottom-sheet**(店舗情報シート)で実装され、本パッケージは未使用のまま残っていた。未 import パッケージは Metro バンドルに含まれず実行もされないため、「新アーキで最も懸念」は**実体の無い懸念**だった。
 
 したがって代替への移行ではなく **`npm uninstall react-native-modal` で削除**(唯一の連れ依存 react-native-animatable も自動 prune、計 2 パッケージ除去)。削除後の静的検証は全 green: **npm audit 0 / expo-doctor 19/19 / expo install --check 最新一致 / tsc 既知の VoiceInputButton 2 件のみ**。これで SDK 55 ブランチは overrides も依存も一段クリーンになった。
+
+### EAS Build/Update の npm ci 失敗(@firebase/auth の async-storage ピア × npm バージョン差異)
+
+**症状**: ローカルは全 green なのに EAS(`Running "npm ci --include=dev" in /home/expo/workingdir/build/`)が `npm error code EUSAGE` →「`Missing: @react-native-async-storage/async-storage@1.24.0 from lock file`」(2 行)で失敗。`npm ci` は package.json と lock の不整合があると install せず止まる。`1.24.0` はルートが宣言する **2.2.0 とは無関係な 1.x 系**であり、全コミット履歴を見てもルート package.json が 1.24.0 を宣言したことは一度もない(常に 2.x)→ **transitive/peer 由来**と判明。
+
+**根本原因 = npm バージョン差異**。`@react-native-firebase/app` → `firebase@11.10.0` → `@firebase/auth@1.10.8`(および `@firebase/auth-compat`)が **optional peer** として `@react-native-async-storage/async-storage: "^1.18.1"` を宣言している(lock 上 `peerDependenciesMeta.optional: true`)。ルートは 2.2.0 で `^1.18.1` を満たさない = **未充足の optional peer**。
+
+- **ローカル npm 11.7.0**(Node 22.13.0 は本来 npm 10.9.2 同梱だが手動で 11 に更新済み)は、未充足の optional peer を**ネストせず**放置 → lock に 1.x のネスト entry 無し → ローカル `npm ci` は通る。
+- **EAS クラウドの npm 10.x** は同じ peer を満たそうと `node_modules/firebase/...` と `node_modules/@firebase/auth-compat/...` に **async-storage@1.24.0(1.x 最新)をネスト**しようとする → npm 11 製の lock にその entry が無い → `npm ci` が「Missing」(2 か所ぶんで 2 行)で落ちる。
+
+`npx npm@10.9.2 ci --include=dev --dry-run` で **EAS と同一エラーをローカル再現**、npm 11 では再現しないことを確認し npm バージョン差異と断定した。
+
+**なぜ再発したか**: SDK 54 の `3c0e560` はこの同じエラーを **lock に 28 行を手追加**(上記 2 か所の async-storage@1.24.0 ネスト entry)して凌いでいた。しかし SDK 55 のクリーン再 install(npm 11)が lock を再生成し、その手追加分を**消した**ため再発。**lock の手パッチは clean install で必ず飛ぶ = 非永続**。§11(SDK 53)で「`peerOptional` だから overrides 不要」とした判断は**ローカル前提では正**だが、**EAS の npm 10 がそれをハード失敗に変える**点を見落としていた。
+
+**恒久対策(採用)**: package.json の overrides に下記 1 行を追加。
+
+```json
+"@react-native-async-storage/async-storage": "$@react-native-async-storage/async-storage"
+```
+
+`$<dep>` 参照でルート宣言版(= 2.2.0)に固定され、**どの npm バージョンでも 1.x をネストしなくなる**(npm 10 は ci 時に package.json の overrides を読んで 1.24.0 を要求しなくなる)。package.json 宣言なので **clean install でも消えない = 永続**。`$` 参照のため将来 SDK で async-storage が上がっても**自動追従**(固定値ハードコードでない)。アプリの認証は `@react-native-firebase`(ネイティブ)で行い JS SDK の async-storage 永続化経路は使っていないため、この固定は機能的に無害。
+
+**検証**: 追加後 `npx npm@10.9.2 ci --include=dev --dry-run`(= EAS 相当)が **Missing 消失で成功**、`npm ci`(npm 11)も成功、`npm audit` **0** / `expo-doctor` **19/19**。override は解決ツリーに対し no-op(async-storage は元から 2.2.0 単一)のため **lock 不変・node_modules 不変** = 差分は **package.json の 1 行のみ**。EAS は push 済み ref をビルドするので、本修正は **commit + push して初めて反映**される。
 
 ### iOS 静的フレームワーク修正(SDK 54 §12 の7・8)の SDK 55 での扱い
 
