@@ -3,6 +3,13 @@
   "compilerOptions": {
     "strict": true,
     "jsx": "react-jsx",
+    // TypeScript 6.0 で `baseUrl` が非推奨化(TS 7.0 で廃止予定)し、未指定だと
+    // tsc が TS5101 エラーで停止する。babel-preset-expo が `@/` エイリアスの
+    // バンドラ解決に baseUrl + paths を参照しているため baseUrl は維持が必要
+    // (削除するとエイリアス解決が変わるリスク)。TS6.0 の公式推奨どおり
+    // ignoreDeprecations で警告を抑止し、現行の解決挙動を不変に保つ。
+    // baseUrl 撤去は TS 7.0 移行時にバンドラ検証込みで対応する。
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "@/*": [

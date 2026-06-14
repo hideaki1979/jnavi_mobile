@@ -67,16 +67,39 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
             "expo-build-properties",
             {
                 ios: {
-                    useFrameworks: "static",
-                    // SDK54 既知問題: useFrameworks:static + RN プリコンパイル済みバイナリで
-                    // 「must be imported from module ... before it is required」が発生する
-                    // (react-native-maps 等)。Expo 公式の暫定対処として RN をソースビルドする。
-                    // 参考: expo/expo#39233
-                    buildReactNativeFromSource: true
+                    useFrameworks: "static"
+                    // SDK54 で expo/expo#39233(useFrameworks:static + RN プリコンパイル
+                    // 済みバイナリで「must be imported from module ... before it is
+                    // required」, react-native-maps 等)の回避として
+                    // `buildReactNativeFromSource: true` を入れていたが、SDK56 + Xcode
+                    // 26.5 + RN 0.85 で #39233 が解消したため撤去した。撤去版で
+                    // iPhone 16 Pro シミュレータ向け expo run:ios が Build Succeeded
+                    // (0 error)を確認済み(2026-06-14)。precompiled RN を使うため
+                    // 初回ビルドが大幅短縮。再発時のみ復活する。
                 }
             }
         ],
         "expo-font",
+        // SDK56 で expo-asset / expo-image / expo-status-bar が config plugin を
+        // 持つようになり、`expo install --fix` が plugins 配列への明示登録を要求する
+        // (動的設定 app.config.ts には自動追記できないため手動追加)。いずれも
+        // 一級 Expo プラグインで、ネイティブのアセット埋め込み・画像・ステータスバー
+        // 設定を prebuild に適用する。
+        "expo-asset",
+        "expo-image",
+        "expo-status-bar",
+        // SDK56 で app.json トップレベルの `splash` プロパティが config schema
+        // から廃止された(expo-doctor の schema チェックが additional property
+        // 'splash' で fail)。splash は expo-splash-screen の config plugin 経由で
+        // 設定する方式に移行。従来の app.json の splash 設定を忠実に移植している。
+        [
+            "expo-splash-screen",
+            {
+                image: "./assets/splash-icon.png",
+                resizeMode: "contain",
+                backgroundColor: "#ffffff"
+            }
+        ],
         // SDK54 + useFrameworks:static の非モジュラヘッダ問題(react-native-maps等)対処
         "./plugins/withNonModularHeaders"
     ]
