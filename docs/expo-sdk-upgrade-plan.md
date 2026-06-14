@@ -401,7 +401,7 @@ SDK 56 チェンジログの破壊的変更を全件、本プロジェクトの 
 | @expo/vector-icons | 15.1.1(expo 本体の依存から脱落 → 明示依存を維持) |
 | アーキテクチャ | New Architecture(SDK 54 以降。`newArchEnabled=true` を prebuild が gradle.properties に書き出し) |
 | Android target/compile/minSdk | **36 / 36 / 24**(expo-modules-core 既定。SDK 55 と同値。`android/build.gradle` は `expo-root-project` plugin 経由に簡素化され ext 定義が消えた) |
-| iOS deployment target | **16.4**(SDK 55 の 15.1 から引き上げ。Podfile の `platform :ios, ... || '16.4'`) |
+| iOS deployment target | **16.4**(SDK 55 の 15.1 から引き上げ。Podfile の `platform :ios, ... \|\| '16.4'`) |
 | edge-to-edge | 有効維持(`edgeToEdgeEnabled=true`) |
 | npm audit | **0 件** |
 | `npx expo install --check` / `npx expo-doctor` | 最新一致 / **21/21 全合格**(SDK 55 の 19/21 → 検査項目が 2 増。新設 schema チェックが下記1 を検出) |
