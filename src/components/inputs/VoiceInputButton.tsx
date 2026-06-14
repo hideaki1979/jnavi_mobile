@@ -1,5 +1,5 @@
 import { VoiceInputButtonProps } from "@/src/types/voice"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { IconButton, Text, useTheme } from "react-native-paper"
 import {
     ExpoSpeechRecognitionModule,
@@ -60,6 +60,19 @@ const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
         isActiveRef.current = false
         setIsListening(false)
     })
+
+    useEffect(() => {
+        // 認識中にアンマウントされた場合、ネイティブの音声認識セッションを
+        // 中断する。これをしないとマイクが開いたままになり、リソースリークや
+        // 次回以降の認識をブロックする原因になる。最終結果は不要なので
+        // stop() ではなく abort()(即時キャンセル)を使う。
+        return () => {
+            if (isActiveRef.current) {
+                ExpoSpeechRecognitionModule.abort()
+                isActiveRef.current = false
+            }
+        }
+    }, [])
 
     const toggleVoiceRecognition = async () => {
         if (isListening) {
