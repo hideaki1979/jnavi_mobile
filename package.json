@@ -6,7 +6,9 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit",
+    "typecheck:ts7": "tsgo --noEmit"
   },
   "dependencies": {
     "@babel/helpers": "^7.27.0",
@@ -37,6 +39,7 @@
     "expo-location": "~56.0.17",
     "expo-router": "~56.2.10",
     "expo-speech": "~56.0.3",
+    "expo-speech-recognition": "^56.0.1",
     "expo-splash-screen": "~56.0.10",
     "expo-status-bar": "~56.0.4",
     "expo-system-ui": "~56.0.5",
@@ -58,6 +61,7 @@
     "@babel/core": "^7.26.10",
     "@eslint/js": "^9.21.0",
     "@types/react": "~19.2.10",
+    "@typescript/native-preview": "^7.0.0-dev.20260613.1",
     "babel-preset-expo": "~56.0.0",
     "eslint": "^9.21.0",
     "eslint-plugin-react": "^7.37.4",

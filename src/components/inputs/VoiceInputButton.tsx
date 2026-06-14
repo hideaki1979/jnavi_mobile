@@ -1,21 +1,27 @@
 import { VoiceInputButtonProps } from "@/src/types/voice"
-import { useEffect, useState } from "react"
+import { useRef, useState } from "react"
 import { IconButton, Text, useTheme } from "react-native-paper"
-import Voice, { SpeechResultsEvent } from '@react-native-voice/voice'
+import {
+    ExpoSpeechRecognitionModule,
+    useSpeechRecognitionEvent,
+} from "expo-speech-recognition"
 import { StyleSheet, View } from "react-native"
 
 /**
  * 音声入力ボタン
- * 
- * `VoiceInputButton`コンポーネントは、音声入力を開始/停止するボタンを提供します。
- * ボタンを押すと、音声入力が開始/停止されます。
- * 音声入力が開始された場合は、`onSpeechResults`で指定された関数に音声認識結果が
- * 渡されます。
- * 
+ *
+ * `VoiceInputButton`コンポーネントは、音声入力(音声→テキスト)を開始/停止する
+ * ボタンを提供します。ボタンを押すとマイク・音声認識の権限を要求し、許可されると
+ * 音声認識を開始します。確定した認識結果は`onSpeechResult`に渡されます。
+ *
+ * `expo-speech-recognition`のイベント(`useSpeechRecognitionEvent`)はアプリ全体で
+ * 共有されるため、複数の`VoiceInputButton`が同時にマウントされていても、認識を
+ * 開始したボタンだけが結果を処理するよう`isActiveRef`でガードしている。
+ *
  * @param {VoiceInputButtonProps} props - コンポーネントのプロパティ
- * @param {string} props.fieldName - ボタンのラベルに使用するフィールド名
- * @param {string} [props.size=24] - ボタンのサイズ
- * @param {(value: string) => void} props.onSpeechResult - 音声認識結果を受け取る関数
+ * @param {string} props.fieldName - ボタンのラベル(アクセシビリティ)に使用するフィールド名
+ * @param {number} [props.size=24] - ボタンのサイズ
+ * @param {(value: string) => void} props.onSpeechResult - 確定した音声認識結果を受け取る関数
  */
 const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
     onSpeechResult,
@@ -23,39 +29,59 @@ const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
     size = 24
 }) => {
     const [isListening, setIsListening] = useState(false)
+    // このボタンが認識を開始した場合のみ true。共有イベントの取り違えを防ぐ。
+    const isActiveRef = useRef(false)
     const theme = useTheme()
 
-    useEffect(() => {
-        // イベントリスナーの設定
-        Voice.onSpeechStart = () => setIsListening(true)
-        Voice.onSpeechEnd = () => setIsListening(false)
-        Voice.onSpeechError = (error) => {
-            console.error('音声認識エラー：', error)
-            setIsListening(false)
+    useSpeechRecognitionEvent("start", () => {
+        if (!isActiveRef.current) return
+        setIsListening(true)
+    })
 
-        }
-        Voice.onSpeechResults = (e: SpeechResultsEvent) => {
-            if (e.value && e.value.length > 0) {
-                onSpeechResult(e.value[0])
-                setIsListening(false)
-            }
-        }
+    useSpeechRecognitionEvent("end", () => {
+        if (!isActiveRef.current) return
+        isActiveRef.current = false
+        setIsListening(false)
+    })
 
-        // クリーンアップ
-        return () => {
-            Voice.destroy().then(Voice.removeAllListeners)
+    useSpeechRecognitionEvent("result", (event) => {
+        if (!isActiveRef.current) return
+        const transcript = event.results[0]?.transcript
+        if (event.isFinal && transcript) {
+            onSpeechResult(transcript)
         }
-    }, [onSpeechResult])
+    })
+
+    useSpeechRecognitionEvent("error", (event) => {
+        if (!isActiveRef.current) return
+        // no-speech / audio-capture 等は復帰可能な想定内エラー。dev の赤い
+        // LogBox オーバーレイを出さないよう error ではなく warn で記録する。
+        console.warn("音声認識エラー：", event.error, event.message)
+        isActiveRef.current = false
+        setIsListening(false)
+    })
 
     const toggleVoiceRecognition = async () => {
+        if (isListening) {
+            ExpoSpeechRecognitionModule.stop()
+            return
+        }
         try {
-            if (isListening) {
-                await Voice.stop()
-            } else {
-                await Voice.start('ja-JP')
+            const permission =
+                await ExpoSpeechRecognitionModule.requestPermissionsAsync()
+            if (!permission.granted) {
+                console.warn("音声認識の権限が許可されませんでした")
+                return
             }
+            isActiveRef.current = true
+            ExpoSpeechRecognitionModule.start({
+                lang: "ja-JP",
+                interimResults: false,
+                continuous: false
+            })
         } catch (error) {
-            console.error('音声認識エラー：', error)
+            isActiveRef.current = false
+            console.error("音声認識エラー：", error)
         }
     }
 
