@@ -100,6 +100,22 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
                 backgroundColor: "#ffffff"
             }
         ],
+        // 音声入力(音声→テキスト)。expo-speech-recognition は config plugin 方式で
+        // New Architecture(RN0.85)対応・SDK56 を公式サポート(latest 56.0.x)。
+        // iOS は NSMicrophoneUsageDescription / NSSpeechRecognitionUsageDescription、
+        // Android は RECORD_AUDIO 権限と <queries> をこのプラグインが prebuild に注入する。
+        [
+            "expo-speech-recognition",
+            {
+                microphonePermission:
+                    "音声入力のためにマイクの使用を許可してください。",
+                speechRecognitionPermission:
+                    "音声をテキストに変換するために音声認識の使用を許可してください。",
+                androidSpeechServicePackages: [
+                    "com.google.android.googlequicksearchbox"
+                ]
+            }
+        ],
         // SDK54 + useFrameworks:static の非モジュラヘッダ問題(react-native-maps等)対処
         "./plugins/withNonModularHeaders"
     ]
