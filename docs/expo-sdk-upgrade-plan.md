@@ -286,7 +286,7 @@ dev-client ビルド + 実機(シミュレータ/エミュレータ)起動を実
 3. **【最重要】react-native-maps 1.27.2 の Google Maps 統合方式変更(iOS `pod install` 失敗)**: react-native-maps は別個の `react-native-google-maps.podspec` を**廃止**し、単一 `react-native-maps.podspec` の `Google` subspec(`react-native-maps/Google`、GoogleMaps 9.4.0 + Google-Maps-iOS-Utils 6.1.0 依存)へ統合した。一方 Expo 組み込みの maps フォールバック(`@expo/config-plugins/build/ios/Maps.js` の `withMaps`)は**今も廃止済みの `pod 'react-native-google-maps'` を生成**するため、`pod install` が **`No podspec found for react-native-google-maps`** で失敗した。
    - **原因の特定**: Expo は `@expo/cli` 配下 prebuild-config の `unversioned/react-native-maps.js` で `createLegacyPlugin({ packageName: 'react-native-maps', fallback: [...withMaps...] })` を適用する。これは `withStaticPlugin` で **plugins 配列に明示登録された react-native-maps プラグインを探し、無ければ fallback(旧 withMaps)を使う + `createRunOncePlugin` で dedup** する設計。本プロジェクトは react-native-maps を plugins 配列に未登録だったため fallback(旧 pod 行)が走っていた。
    - **対処**: react-native-maps 1.27.2 が**同梱する公式 config plugin**(`app.plugin.js`)を `app.config.ts` の plugins 配列に明示登録し、`iosGoogleMapsApiKey` / `androidGoogleMapsApiKey` を props で渡した。結果、(1) Podfile に正しい `pod 'react-native-maps/Google', :path => rn_maps_path`、(2) iOS Info.plist の `GMSApiKey`、(3) AppDelegate の `GMSServices.provideAPIKey`(`#if canImport(GoogleMaps)` ガード付き)、(4) AndroidManifest の `com.google.android.geo.API_KEY` を生成。**run-once dedup により Expo 組み込みフォールバックがスキップ**され旧 pod 行は消滅。`pod install` 成功(141 pods)。
-   - 注: `app.config.ts` の `ios.config.googleMapsApiKey` / `android.config.googleMaps.apiKey` は維持(フォールバックが skip される限り無害。万一の保険)。API キーは従来同様 `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY`(.env)。
+   - 注: `app.config.ts` の `ios.config.googleMapsApiKey` / `android.config.googleMaps.apiKey` は維持(フォールバックが skip される限り無害。万一の保険)。API キーは `GOOGLE_MAPS_API_KEY`(.env / EAS 環境変数)。**PR レビュー指摘で `EXPO_PUBLIC_` を除去**(ビルド時のみ参照され JS バンドルに混入しないため。下記「Maps API キーの env 変数から `EXPO_PUBLIC_` を除去」節)。
 
 ### overrides 棚卸し(§7 の再評価。全撤去 → クリーン install → audit 実証)
 
@@ -330,7 +330,15 @@ MAP 画面開発時に追加したものの、実際のモーダル UI は **rea
 
 `$<dep>` 参照でルート宣言版(= 2.2.0)に固定され、**どの npm バージョンでも 1.x をネストしなくなる**(npm 10 は ci 時に package.json の overrides を読んで 1.24.0 を要求しなくなる)。package.json 宣言なので **clean install でも消えない = 永続**。`$` 参照のため将来 SDK で async-storage が上がっても**自動追従**(固定値ハードコードでない)。アプリの認証は `@react-native-firebase`(ネイティブ)で行い JS SDK の async-storage 永続化経路は使っていないため、この固定は機能的に無害。
 
-**検証**: 追加後 `npx npm@10.9.2 ci --include=dev --dry-run`(= EAS 相当)が **Missing 消失で成功**、`npm ci`(npm 11)も成功、`npm audit` **0** / `expo-doctor` **19/19**。override は解決ツリーに対し no-op(async-storage は元から 2.2.0 単一)のため **lock 不変・node_modules 不変** = 差分は **package.json の 1 行のみ**。EAS は push 済み ref をビルドするので、本修正は **commit + push して初めて反映**される。
+**検証**: 追加後 `npx npm@10.9.2 ci --include=dev --dry-run`(= EAS 相当)が **Missing 消失で成功**、`npm ci`(npm 11)も成功、`npm audit` **0** / `expo-doctor` **19/19**。override は解決ツリーに対し no-op(async-storage は元から 2.2.0 単一)のため **lock 不変・node_modules 不変** = 差分は **package.json の 1 行のみ**。EAS は push 済み ref をビルドするので、本修正は **commit + push して初めて反映**される。(2026-06-14 に `8141a1e` として commit + push 済み)
+
+### Maps API キーの env 変数から `EXPO_PUBLIC_` を除去(PR レビュー対応)
+
+PR の Gemini レビューで「`EXPO_PUBLIC_` 変数はビルド時に JS バンドルへインライン化される」指摘。検証の結果、**Maps キーは `src/` から一切参照されず `app.config.ts`(ビルド時の native 設定生成)専用**だった(対照的に Google クライアント ID は `src/config/google.ts` の `GoogleSignin.configure` に渡るため runtime 必須 → `EXPO_PUBLIC_` のまま維持)。よって `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` → **`GOOGLE_MAPS_API_KEY`** にリネーム(`app.config.ts` 4 箇所 / `.env` / `.env.example` / `env.d.ts` / `README.md`)。
+
+- 正確には `EXPO_PUBLIC_` のインライン化は**バンドルされる JS 内の参照箇所**で起きる。`app.config.ts` はビルド時に Node 評価されバンドル外なので、参照ゼロの現状では **JS バンドルへの実害は無い**。本変更は将来 `src/` で誤って参照した際の自動インライン化(footgun)除去 + build-time 秘密である明示。
+- **EAS 環境変数も同名にリネーム必須**(非 `EXPO_PUBLIC_` でも EAS ビルド時には渡るため native 設定生成は問題なし。忘れると fallback `YOUR_FALLBACK_KEY` で地図が出ない)。ローカルも `.env` をリネームするまでは fallback になる。
+- **本質的な防御は不変**: Maps キーは prefix に関わらず `Info.plist` の `GMSApiKey` / `AndroidManifest` の `geo.API_KEY` 経由でネイティブバイナリに必ず埋め込まれ抽出可能。実セキュリティの本丸は **Google Cloud Console の API キー制限**(iOS bundle ID / Android package + SHA-1 + Maps SDK 限定)。§11 記載どおり Android 制限が外れる事象があるため要確認。
 
 ### iOS 静的フレームワーク修正(SDK 54 §12 の7・8)の SDK 55 での扱い
 

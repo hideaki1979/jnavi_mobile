@@ -14,7 +14,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         config: {
             ...config.android?.config,
             googleMaps: {
-                apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? "YOUR_FALLBACK_KEY"
+                apiKey: process.env.GOOGLE_MAPS_API_KEY ?? "YOUR_FALLBACK_KEY"
             }
         },
         googleServicesFile: process.env.GOOGLE_SERVICES_JSON
@@ -25,7 +25,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         bundleIdentifier: config.ios?.bundleIdentifier,
         config: {
             ...config.ios?.config,
-            googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? "YOUR_FALLBACK_KEY"
+            googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY ?? "YOUR_FALLBACK_KEY"
         },
         googleServicesFile: process.env.GOOGLE_SERVICES_INFO_PLIST
             ?? "./GoogleService-Info.plist"
@@ -55,9 +55,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
             "react-native-maps",
             {
                 iosGoogleMapsApiKey:
-                    process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? "YOUR_FALLBACK_KEY",
+                    process.env.GOOGLE_MAPS_API_KEY ?? "YOUR_FALLBACK_KEY",
                 androidGoogleMapsApiKey:
-                    process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? "YOUR_FALLBACK_KEY"
+                    process.env.GOOGLE_MAPS_API_KEY ?? "YOUR_FALLBACK_KEY"
             }
         ],
         "@react-native-firebase/app",
