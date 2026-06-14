@@ -256,7 +256,7 @@ sequenceDiagram
 | 変数名                            | 説明                          | 例                      |
 | --------------------------------- | ----------------------------- | ----------------------- |
 | `EXPO_PUBLIC_API_URL`             | バックエンド API のベース URL | `https://api.jnavi.com` |
-| `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` | Google Maps API キー          | `AIzaSyC...`            |
+| `GOOGLE_MAPS_API_KEY`             | Google Maps API キー（ビルド時のみ・`EXPO_PUBLIC_` なし） | `AIzaSyC...`            |
 
 ### Firebase 設定（必須）
 
@@ -290,7 +290,7 @@ sequenceDiagram
 ```bash
 # .env ファイルの例
 EXPO_PUBLIC_API_URL=https://api.jnavi.com
-EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyC...
+GOOGLE_MAPS_API_KEY=AIzaSyC...
 
 # Firebase 設定
 EXPO_PUBLIC_FIREBASE_API_KEY=AIzaSyC...
