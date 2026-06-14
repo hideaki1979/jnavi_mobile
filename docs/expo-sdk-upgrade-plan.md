@@ -90,7 +90,7 @@ npx expo-doctor                    # 整合性チェック
 3. **53 → 54**: RN 0.81、target API 35、Android edge-to-edge 対応。**中間リリース可能地点**(Play 要件もここで解消)✅ 実施済み(§12 実施記録参照)
 4. **SDK 54 上で `newArchEnabled: true`** に切替え、全画面 QA(地図・モーダル・ドロップダウン・BottomSheet が重点)✅ ステップ3と同時に実施済み(§12)。実機 QA はユーザー実施分が残(§12 末尾チェックリスト)
 5. **54 → 55**: reanimated 4.2 / RN 0.83 / React 19.2 吸収。**新アーキは SDK 54 で済のため必須化はクリア済み**。config-plugins の hoist 問題と react-native-maps の Google Maps 統合方式変更が要対応 ✅ 実施済み(§13 実施記録参照)
-6. **55 → 56**: 最新版(reanimated 4.3 等)へ。次回区切り
+6. **55 → 56**: 最新安定版(reanimated 4.3 / RN 0.85 / TS 6 等)へ。splash の plugin 移行と TS 6 の baseUrl 対応が要対応 ✅ 実施済み(§14 実施記録参照)
 7. 完了時に overrides・postinstall シムを棚卸し(§7)
 
 ## 7. 現行セキュリティ対策の棚卸し(アップグレード時に撤去・再評価するもの)
@@ -366,3 +366,107 @@ PR の Gemini レビューで「`EXPO_PUBLIC_` 変数はビルド時に JS バ�
 - [ ] edge-to-edge / ライトモード固定 / 位置情報許可 / 画像表示(expo-image) / Google ログイン・Firebase Auth
 - ローカルバックエンドは Docker PostgreSQL(ポート 5433)
 - 既知の VoiceInputButton 2 エラー(§9)は本タスク対象外で未解消のまま
+
+## 14. 実施記録(SDK 55 → 56、2026-06-14、ブランチ feature/expo-sdk56-upgrade)
+
+§6 のステップ6(55→56)。最新安定版 SDK 56(`latest` タグ = 56.0.11。SDK 57 は canary)へ。**コード(`src/`)側の破壊的変更該当はゼロ**で、山は **(A) config schema 変更で `splash` トップレベルプロパティ廃止 → expo-splash-screen plugin 移行** と **(B) TypeScript 6.0 化に伴う `baseUrl` 非推奨エラー** の 2 点。いずれもネイティブ/型の静的検証で顕在化し対応済み。
+
+### SDK 56 破壊的変更の影響調査(コードベースは無傷)
+
+SDK 56 チェンジログの破壊的変更を全件、本プロジェクトの `src/` に対し照合 → **該当ゼロ**:
+
+| SDK 56 の破壊的変更 | 本プロジェクトへの影響 |
+|---|---|
+| expo-router が React Navigation 非依存化(`@react-navigation/*` 直 import が破壊) | **影響なし**(`@react-navigation/*` の直 import が `src/` に 0 件。codemod 不要) |
+| `@expo/vector-icons` が expo 本体の依存から脱落(明示依存が必要) | **対応済**(元から `dependencies` に `@expo/vector-icons` を明示。SDK 56 で 15.1.1 に解決。`expo install --check` も最新一致。なお `@react-native-vector-icons/*` への移行が非推奨案内されるが任意で、現状維持で動作) |
+| expo-file-system の copy/move が async 化(`copySync`/`moveSync` 別途) | **影響なし**(`copyAsync`/`moveAsync`/`.copy`/`.move` の使用が `src/` に 0 件) |
+| expo/fetch が `globalThis.fetch` 既定化(WinterTC 準拠) | **影響なし**(直接 `fetch(` 使用 0 件。通信は axios で RN の XHR アダプタ経由。opt-out は `EXPO_PUBLIC_USE_RN_FETCH=1`) |
+| @expo/dom-webview が WebView 既定化(react-native-webview 不要) | **影響なし**(react-native-webview 未使用) |
+| iOS/tvOS 最小 16.4(15.1 から) / **最小 Xcode 26.4** / macOS 最小 13.4 | iOS deployment target は prebuild が自動で 16.4 に。**Xcode 26.4 要件は要注意**(下記「残作業」。ローカル Xcode は 26.1.1) |
+| Hermes v1 既定 / 新アニメーションバックエンド | 透過的(`expo export` で Hermes バイトコード `.hbc` 出力を確認) |
+| TypeScript 6.0.3 をテンプレート同梱 | 追従(下記2) |
+| Node.js 最小 v20.19.4 | ローカル v22.13.0 で充足 |
+
+### 到達状態
+
+| 項目 | 結果 |
+|---|---|
+| expo / react-native / react / react-dom | 56.0.11 / 0.85.3 / 19.2.3 / 19.2.3 |
+| expo-router / reanimated / worklets | 56.2.10 / 4.3.1 / **0.8.3**(SDK 55 は 0.7.4) |
+| gesture-handler / screens / safe-area-context | 2.31.2 / 4.25.2 / 5.7.0 |
+| @types/react / typescript | 19.2.17 / **6.0.3**(SDK 55 の 5.9.3 から **メジャー更新**。下記2) |
+| react-native-maps | 1.27.2(SDK 55 から据え置き。iOS 統合方式は §13 の対処を継続) |
+| **expo-splash-screen** | **~56.0.10 を新規追加**(splash 移行のため。下記1) |
+| babel-preset-expo(devDep) | ~56.0.0(解決 56.0.15) |
+| @expo/vector-icons | 15.1.1(expo 本体の依存から脱落 → 明示依存を維持) |
+| アーキテクチャ | New Architecture(SDK 54 以降。`newArchEnabled=true` を prebuild が gradle.properties に書き出し) |
+| Android target/compile/minSdk | **36 / 36 / 24**(expo-modules-core 既定。SDK 55 と同値。`android/build.gradle` は `expo-root-project` plugin 経由に簡素化され ext 定義が消えた) |
+| iOS deployment target | **16.4**(SDK 55 の 15.1 から引き上げ。Podfile の `platform :ios, ... || '16.4'`) |
+| edge-to-edge | 有効維持(`edgeToEdgeEnabled=true`) |
+| npm audit | **0 件** |
+| `npx expo install --check` / `npx expo-doctor` | 最新一致 / **21/21 全合格**(SDK 55 の 19/21 → 検査項目が 2 増。新設 schema チェックが下記1 を検出) |
+| EAS 相当 `npx npm@10.9.2 ci --include=dev --dry-run` | **成功**(Missing エラーなし。async-storage override が継続して効く。下記overrides節) |
+| `tsc --noEmit` | TS 6.0 化後も既知の VoiceInputButton 2 エラーのみ(§9)。SDK 56 / TS 6 / React 19.2.3 / RN 0.85 による**新規型エラーなし** |
+| Metro バンドル(`expo export --platform android`) | 成功(Hermes v1 既定化で `.hbc` バイトコード 5.7MB を出力) |
+| `expo prebuild --clean` + `pod install` | **成功**(`react-native-maps/Google` subspec + GoogleMaps 9.4.0 / Google-Maps-iOS-Utils 6.1.0、withNonModularHeaders 注入、splash リソース生成を確認) |
+| **iOS dev-client ビルド(シミュレータ)** | **成功**(iPhone 16 Pro / iOS 18.4 シミュレータ、`expo run:ios` が **Build Succeeded / 0 error / 24 warning**。`buildReactNativeFromSource` 撤去版で precompiled RN ビルド。下記7) |
+| **Android dev-client ビルド/起動** | **未実施**(ユーザー実施分。下記チェックリスト) |
+| **両 OS 機能 QA** | **未実施**(ユーザー実施分。アプリ起動・地図・splash 等。下記チェックリスト) |
+
+### 対応が必要だった点
+
+1. **【最重要・SDK 56 固有】`splash` トップレベルプロパティ廃止 → expo-splash-screen plugin へ移行**: SDK 56 の config schema から `app.json` トップレベルの `splash` が**廃止**され、expo-doctor の schema チェックが `should NOT have additional property 'splash'` で fail(20/21)。SDK 56 では splash は **expo-splash-screen の config plugin** 経由で設定する方式が正(legacy トップレベルは将来削除予定で SDK 56 で schema reject)。
+   - **expo-splash-screen は SDK 56 で expo 本体の依存から脱落**(expo の dependencies に splash 系は無く `expo-asset` のみ)していたため、`npx expo install expo-splash-screen`(→ ~56.0.10)で**明示追加**。
+   - 従来の `app.json` の splash 設定(`image: ./assets/splash-icon.png` / `resizeMode: contain` / `backgroundColor: #ffffff`)を **app.config.ts の plugins に `["expo-splash-screen", {...}]` として忠実に移植**し、`app.json` のトップレベル `splash` ブロックを削除。再 doctor で **21/21**。prebuild で Android `colors.xml` に `splashscreen_background #ffffff` + `splashscreen_logo` リソース生成を確認。
+   - 注: legacy トップレベル splash は**全画面 contain**、新 plugin は**中央配置 + imageWidth(既定 100px)**が基本モデルで、`resizeMode: contain` 指定時の見え方が変わりうる。**splash の見栄えは実機 QA 項目**(下記)。
+2. **SDK 56 で expo-asset / expo-image / expo-status-bar が config plugin を持つ → plugins 配列へ明示登録**: `expo install --fix` が動的設定(app.config.ts)へ自動追記できず「Add the following to your Expo config: expo-asset / expo-image / expo-status-bar」を出す(これにより `--fix` は exit 1 で終了するが、依存の npm install 自体は完了済み)。いずれも一級 Expo プラグイン(ネイティブのアセット埋め込み・画像・ステータスバー設定を prebuild に適用)で、SDK 56 テンプレート整合のため app.config.ts に**文字列プラグインとして追加**。
+3. **TypeScript 6.0 化に伴う `baseUrl` 非推奨エラー(TS5101)**: SDK 56 は TS 6.0.3 を採用。TS 6.0 で `baseUrl` が**非推奨**(TS 7.0 で廃止予定)になり、未対処だと **tsc が TS5101 設定エラーで停止**(プログラム本体の型チェックに到達せず、既知の VoiceInputButton 2 エラーすら出ない)。
+   - 本プロジェクトの `tsconfig.json` は `baseUrl: "."` + `paths`(`@/*`, `~/*`)。`@/` は 27 ファイルで使用、`~/` は未使用(0 件)。**babel.config.js に module-resolver は無く、metro.config.js も無い** → `@/` エイリアスの**バンドラ解決は babel-preset-expo が tsconfig の baseUrl + paths を参照**して行っている。
+   - したがって **baseUrl を削除するとバンドラのエイリアス解決が変わるリスク**がある。TS 6.0 のエラーメッセージ自身が推奨する **`"ignoreDeprecations": "6.0"`** を tsconfig に追加(baseUrl はそのまま維持 = tsc・バンドラ双方の解決挙動を一切変えないゼロリスク対応)。再 tsc で**既知の 2 エラーのみ**に復帰。**baseUrl 撤去は TS 7.0 移行時にバンドラ検証込みで対応する**(別タスク)。
+4. **クリーンインストール(SDK 55 §13-1 の教訓を踏襲)**: in-place の `expo install expo@^56 --fix` 後、`rm -rf node_modules package-lock.json && npm install` で lockfile を再生成。`@expo/config-plugins`(56 系)が top-level に hoist され、firebase plugin / 自作 `withNonModularHeaders` の deep import が解決することを `require.resolve` で実証(`expo install --check` の config plugin check skip 警告なし)。**メジャー更新では in-place --fix 後に必ず lockfile 再生成**。
+
+### overrides 棚卸し(§7 の再評価)
+
+| 対策 | SDK 56 での状況 | 判定 |
+|---|---|---|
+| overrides `uuid ^11.1.1` | `xcode@3.0.1` が今も `uuid ^7.0.3` 固定(7.0.3 は GHSA-w5hq-g745-h8pq)。override で 11.1.1 に解決(`npm ls uuid` で実証) | **維持** |
+| overrides `@react-native-async-storage/async-storage`(`$` 参照) | `firebase@11.10.0 → @firebase/auth@1.10.8`(+auth-compat)が今も optional peer `async-storage ^1.18.1` を宣言(§13 と同一機構)。override で 2.2.0 dedupe。**`npx npm@10.9.2 ci --dry-run`(EAS 相当)が Missing エラーなしで成功** = 引き続き load-bearing | **維持** |
+
+**最終 overrides は SDK 55 から不変**(`uuid` + `async-storage` の 2 件)。撤去候補なし。
+
+### ネイティブ再生成の検証(prebuild --clean 後)
+
+- iOS: `platform :ios, ... || '16.4'`(15.1 から引き上げ)。Podfile に `pod 'react-native-maps/Google'`(正)+ withNonModularHeaders の post_install 注入(`CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES`)。Podfile.lock に GoogleMaps 9.4.0 / Google-Maps-iOS-Utils 6.1.0 / react-native-maps/Google 1.27.2。Info.plist GMSApiKey に実キー。AppDelegate に firebaseauth reCAPTCHA openURL ガード
+- Android: gradle.properties に `newArchEnabled=true` / `edgeToEdgeEnabled=true`。target/compile 36・min 24(expo-modules-core 既定)。AndroidManifest に Maps geo API_KEY(実キー)+ 位置情報権限。android/app/google-services.json 配置。expo-splash-screen の `splashscreen_background #ffffff` リソース生成
+- GoogleService-Info.plist / google-services.json はルートに配置済み(.gitignore 対象、ローカル保管必須 — §11〜§13 と同じ)
+
+### 7. `buildReactNativeFromSource: true` の撤去(§13 からの宿題を解消)
+
+SDK 54〜55 で expo/expo#39233(useFrameworks:static + RN プリコンパイル済みバイナリで「must be imported from module ... before it is required」, react-native-maps 等)の回避として `expo-build-properties.ios.buildReactNativeFromSource: true` を入れていた。**SDK 56 + Xcode 26.5 + RN 0.85 で #39233 が解消**したため**撤去**(app.config.ts から削除)。
+
+- 検証: 撤去 → `expo prebuild --clean`(Podfile.properties.json から `ios.buildReactNativeFromSource` が消え `ios.useFrameworks: static` のみ)→ **iPhone 16 Pro / iOS 18.4 シミュレータ向け `expo run:ios` が Build Succeeded / 0 error / 24 warning**(警告は GTMSessionFetcher/AppAuth 等の privacy bundle deployment 不一致やスクリプト依存解析の定番のみで無害)。`react-native-maps` の AirGoogleMaps ヘッダも precompiled framework 経由で正常コンパイル。**#39233 の再現なし**
+- 効果: RN をソースからビルドしないため**初回 iOS ビルドが大幅短縮**。再発時のみ `buildReactNativeFromSource: true` を復活する
+
+### 8. 【Xcode 26.5 更新時の gotcha】iOS シミュレータランタイムの再ダウンロードが必須
+
+SDK 56 は **iOS 最小 16.4 / 最小 Xcode 26.4**。ローカル Xcode を 26.1.1 → **26.5** に更新したが、更新直後の `expo run:ios` が **`xcodebuild: error: Unable to find a destination matching the provided destination specifier`** で**コンパイル前に失敗**(#39233 と誤認しやすいが無関係)。
+
+- 原因: Xcode 26.5 の SDK は iOS 26.5 だが、**対応するシミュレータランタイム(iOS 26.5)が未ダウンロード**。`xcrun simctl list runtimes` には旧 Xcode 由来の iOS 18.4 / 26.1 が見えるのに、`xcodebuild -showdestinations` が**シミュレータ destination を 1 つも提示しない**(Ineligible な「Any iOS Device」のみ、`iOS 26.5 is not installed. Please download and install the platform from Xcode > Settings > Components.`)。新 Xcode は旧ランタイムをそのままでは使えない
+- 対処: **`xcodebuild -downloadPlatform iOS`**(sudo 不要、iOS 26.5 Simulator ランタイム約 8.5GB をダウンロード+インストール)。完了後 `xcrun simctl list runtimes` に iOS 26.5 が出現し、`-showdestinations` が 18.4/26.1/26.5 全シミュレータを提示 → ビルド成功。GUI なら Xcode > Settings > Components から同等
+- 初回起動セットアップ(`sudo xcodebuild -license accept && sudo xcodebuild -runFirstLaunch`)も Xcode 更新後に必須
+
+### 残作業: 実機 dev-client ビルド + 機能 QA(ユーザー実施)
+
+静的検証(audit 0 / doctor 21/21 / tsc / Metro export / prebuild + pod install)は全 green。**iOS シミュレータビルドも成功**(上記7)。残る「完了」判定には Android ビルド + 両 OS の起動 + 操作確認が必須。重点:
+
+- [x] **Xcode を 26.4 以上へ更新** → **26.5** に更新済み(iOS シミュレータランタイムの再 DL が必要だった。上記8)。`buildReactNativeFromSource` を外して `expo run:ios` が **Build Succeeded** = 撤去確定(上記7)
+- [ ] **iOS アプリ起動後の機能 QA**(ビルド成功済み。シミュレータでアプリ起動 → 下記の地図・splash・ログイン等を操作確認。Metro は 8081 稼働中)
+- [ ] **Android dev-client ビルド/起動**(`npx expo run:android`、**JDK 17 必須** — §13 と同様、mac デフォルト JDK では Gradle 失敗。`JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home`)
+- [ ] **splash の見栄え**(expo-splash-screen plugin 移行の影響。legacy 全画面 contain → plugin 中央配置で**最重点**。`resizeMode`/`imageWidth` の調整要否を両 OS で確認)
+- [ ] **地図(react-native-maps 1.27.2)**: タイル表示・現在地・マーカー・StoreInfoBottomSheet。dev ビルドの Maps 認可は `android/app/debug.keystore` の SHA-1 を Google Cloud Console に登録要
+- [ ] element-dropdown / @gorhom/bottom-sheet(reanimated 4.3.1 / gesture-handler 2.31.2 / **worklets 0.8.3** 連携。§13 の WorkletsError gotcha 同様、SDK 跨ぎで Metro を `--clear` 起動)
+- [ ] edge-to-edge / ライトモード固定 / 位置情報許可 / 画像表示(expo-image) / Google ログイン・Firebase Auth
+- [ ] **SDK 更新後は両 OS とも一度フル再ビルド**(§13 の `Cannot find native module` gotcha。JS リロードでは新規 autolink ネイティブモジュールが増えない)
+- ローカルバックエンドは Docker PostgreSQL(ポート 5433)
+- 既知の VoiceInputButton 2 エラー(§9)は本タスク対象外で未解消のまま
+- **コミット/push はユーザーが実施**(自動コミット禁止の慣例)。EAS は push 済み ref をビルドするため、EAS 利用時は **EAS 環境変数 `GOOGLE_MAPS_API_KEY` の設定済みを確認**(§13)
