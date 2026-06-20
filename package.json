@@ -68,7 +68,7 @@
     "globals": "^16.0.0",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.26.0",
-    "undici": ">=7.18.2"
+    "undici": ">=7.28.0"
   },
   "private": true,
   "overrides": {
