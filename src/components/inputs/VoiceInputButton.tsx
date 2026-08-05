@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react"
 import { IconButton, Text, useTheme } from "react-native-paper"
 import {
     ExpoSpeechRecognitionModule,
-    useSpeechRecognitionEvent,
+    useSpeechRecognitionEvent
 } from "expo-speech-recognition"
 import { StyleSheet, View } from "react-native"
 

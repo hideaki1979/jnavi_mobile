@@ -3,7 +3,7 @@ const { withDangerousMod } = require("expo/config-plugins")
 // 多数の公式/コミュニティ config plugin で使われる定石。パスが変わっても
 // "Cannot find module" で即失敗するためサイレント化はしない)
 const {
-    mergeContents,
+    mergeContents
 } = require("@expo/config-plugins/build/utils/generateCode")
 const fs = require("fs")
 const path = require("path")
@@ -52,13 +52,13 @@ module.exports = function withNonModularHeaders(config) {
                 newSrc: INJECTION,
                 anchor: ANCHOR,
                 offset: 1, // post_install do |installer| の次行に挿入
-                comment: "#",
+                comment: "#"
             })
             // didMerge=false は既に注入済み(冪等)。変更があった時のみ書き戻す。
             if (merged.didMerge) {
                 fs.writeFileSync(podfilePath, merged.contents)
             }
             return cfg
-        },
+        }
     ])
 }
