@@ -481,4 +481,17 @@ MIT ライセンスは、以下の権利を提供します：
 
 ## 連絡先
 
-質問や提案がある場合は、Issues セクションで新しいイシューを作成するか、プロジェクト管理者にメールでお問い合わせください。
+### 質問・提案・不具合の報告
+
+[Issues](https://github.com/hideaki1979/jnavi_mobile/issues) から新しいイシューを作成してください。
+
+### 脆弱性の報告
+
+**セキュリティ上の脆弱性は、公開の Issue では報告しないでください。**
+修正前に内容が公開され、利用者が危険にさらされる可能性があります。
+
+GitHub の Private Vulnerability Reporting（非公開の脆弱性報告）をご利用ください。
+
+👉 [脆弱性を報告する](https://github.com/hideaki1979/jnavi_mobile/security/advisories/new)
+
+報告に含めていただきたい情報、対応の流れ、対象範囲については [SECURITY.md](./SECURITY.md) を参照してください。
