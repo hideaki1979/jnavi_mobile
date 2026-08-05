@@ -91,13 +91,29 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         // SDK56 で app.json トップレベルの `splash` プロパティが config schema
         // から廃止された(expo-doctor の schema チェックが additional property
         // 'splash' で fail)。splash は expo-splash-screen の config plugin 経由で
-        // 設定する方式に移行。従来の app.json の splash 設定を忠実に移植している。
+        // 設定する方式に移行。
+        //
+        // legacy(SDK55まで)の `resizeMode: "contain"` は**画面全体**を基準に
+        // 効いていたが、plugin 方式では **`imageWidth` の枠**が基準になる。
+        // imageWidth 未指定だと既定の 100pt で描画され、iPhone 16 Pro(画面幅
+        // 393pt)では約1/4に縮小されてしまう(2026-08-05 の実機QAで検出。
+        // 生成された ios/jNavi/SplashScreen.storyboard のロゴ frame が
+        // width=100 height=100 になっていた)。
+        //
+        // また splash-icon.png は 1024x1024 全面にベージュ(#E5C89A、四隅を
+        // 実測)の背景を持つため、backgroundColor が #ffffff のままだと白地に
+        // ベージュの四角が浮いて見える。legacy では画像が画面幅いっぱいに
+        // 広がっていたので、この不一致は表面化していなかった。
+        //
+        // → imageWidth を画面幅相当まで広げ、backgroundColor を画像の地色に
+        //   揃えることで legacy と同等の見た目に戻す。
         [
             "expo-splash-screen",
             {
                 image: "./assets/splash-icon.png",
                 resizeMode: "contain",
-                backgroundColor: "#ffffff"
+                imageWidth: 400,
+                backgroundColor: "#E5C89A"
             }
         ],
         // 音声入力(音声→テキスト)。expo-speech-recognition は config plugin 方式で
