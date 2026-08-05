@@ -1,21 +1,91 @@
-# Security Policy
+# セキュリティポリシー
 
-## Supported Versions
+J-Navi（二郎・二郎系情報アプリ）のセキュリティポリシーです。
+本プロジェクトを安全に保つためのご協力に感謝します。
 
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
+## 対応バージョン
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 5.1.x   | :white_check_mark: |
-| 5.0.x   | :x:                |
-| 4.0.x   | :white_check_mark: |
-| < 4.0   | :x:                |
+本プロジェクトは個人開発のモバイルアプリケーションです。
+セキュリティ修正は `main` ブランチの最新コミットに対してのみ提供します。
 
-## Reporting a Vulnerability
+| 対象                          | サポート           |
+| ----------------------------- | ------------------ |
+| `main` ブランチ（最新）       | :white_check_mark: |
+| 過去のコミット・タグ・ブランチ | :x:                |
 
-Use this section to tell people how to report a vulnerability.
+過去バージョンへのバックポートは行いません。脆弱性の修正は最新の `main` に取り込まれます。
 
-Tell them where to go, how often they can expect to get an update on a
-reported vulnerability, what to expect if the vulnerability is accepted or
-declined, etc.
+## 脆弱性の報告方法
+
+**脆弱性は公開 Issue や Pull Request で報告しないでください。** 修正前に内容が公開され、
+利用者が危険にさらされる可能性があります。
+
+報告には GitHub の **Private Vulnerability Reporting**（非公開の脆弱性報告）をご利用ください。
+本リポジトリでは既に有効化されています。
+
+👉 [脆弱性を報告する](https://github.com/hideaki1979/jnavi_mobile/security/advisories/new)
+
+やり取りは修正が完了するまで非公開のまま行われます。
+
+### 報告に含めていただきたい情報
+
+過不足があっても構いません。分かる範囲で記載してください。
+
+- 脆弱性の種類（例: 認証バイパス、情報漏えい、インジェクション）
+- 影響を受けるファイル・画面・API エンドポイント
+- 再現手順（可能であれば最小限の再現コード、スクリーンショット、ログ）
+- 想定される影響範囲と深刻度
+- 動作環境（OS とバージョン、アプリのバージョン、ビルド種別）
+
+## 対応の流れ
+
+個人開発のため専任の担当者はおらず、対応はベストエフォートで行います。
+以下は目安であり、保証するものではありません。
+
+| 段階           | 目安     | 内容                                                     |
+| -------------- | -------- | -------------------------------------------------------- |
+| 受領のご連絡   | 7 日以内 | 報告を受け取ったことをお知らせします                     |
+| 調査結果のご連絡 | 30 日以内 | 脆弱性として受理するか否かと、その理由をお伝えします    |
+| 修正            | 深刻度による | 深刻なものから優先して対応します                     |
+| 公表            | 修正後   | GitHub Security Advisory として公開します                |
+
+受理しない場合も、その判断理由を必ずお伝えします。
+ご希望があれば、Advisory の謝辞にお名前（または任意のハンドル名）を記載します。
+
+## 対象範囲
+
+### 対象となるもの
+
+- 本リポジトリのアプリケーションコード（`src/`、`plugins/`、`app.config.ts` 等）
+- 認証・認可の処理（Firebase Authentication、Google Sign-In 連携）
+- 秘匿情報の取り扱い（API キー、トークンの保存・送信方法）
+- 依存パッケージに起因し、かつ本アプリで実際に悪用可能な脆弱性
+
+### 対象外となるもの
+
+- 依存パッケージの脆弱性のうち、本アプリの利用経路では悪用できないもの
+  （スキャナの出力のみを根拠とし、再現手順が示されていない報告を含みます）
+- サードパーティのサービス側の問題（そのサービスの提供者へ直接ご報告ください）
+- 端末の root 化・脱獄、または物理的にアクセスされた状態を前提とする攻撃
+- ソーシャルエンジニアリング、および利用者への攻撃を必要とするもの
+- サービス拒否（DoS）を目的とした負荷試験
+
+## 実施しているセキュリティ対策
+
+本リポジトリでは以下を有効にしています。
+
+- **Dependabot security updates** — 依存パッケージの脆弱性を検知し、更新 PR を自動作成
+- **Secret scanning** — 秘匿情報の混入を検知
+- **Push protection** — 秘匿情報を含むコミットの push をブロック
+- **Private vulnerability reporting** — 非公開での脆弱性報告を受付
+
+加えて、依存パッケージの更新時に `npm audit` と `expo-doctor` による検証を実施しています。
+
+## 秘匿情報の取り扱いについて
+
+API キー等は `.env` で管理し、リポジトリには含めていません。
+`EXPO_PUBLIC_` 接頭辞を付けた環境変数は**クライアントのバンドルに埋め込まれ、利用者から参照可能**です。
+秘匿すべき値には同接頭辞を使用しないでください。
+
+万一リポジトリ内に有効な認証情報を発見された場合は、公開 Issue ではなく
+上記の Private Vulnerability Reporting からご報告ください。
