@@ -40,15 +40,32 @@ export const applyApiFieldErrors = <T extends FieldValues>(
         return toDisplayMessage(error, fallback)
     }
 
+    // 1項目に対して複数の details が返ることがあるため、項目ごとに集約してから
+    // まとめて設定する（項目ごとに setError すると最後の1件しか残らない）。
+    // 同じ文言が重複することもあるので取り除く。
+    //   例) store_name に "" を送ると trim 前後の notEmpty() 双方で弾かれ
+    //       「店舗名は必須です」が2件、null なら型チェックも加わり3件返る
+    const fieldMessages = new Map<Path<T>, string[]>()
     const unmappedMessages: string[] = []
 
     error.details?.forEach((detail) => {
         const path = detail.path as Path<T>
+
         if (formFieldNames.includes(path)) {
-            setError(path, { type: "server", message: detail.msg })
-        } else {
+            const messages = fieldMessages.get(path) ?? []
+            if (!messages.includes(detail.msg)) {
+                fieldMessages.set(path, [...messages, detail.msg])
+            }
+            return
+        }
+
+        if (!unmappedMessages.includes(detail.msg)) {
             unmappedMessages.push(detail.msg)
         }
+    })
+
+    fieldMessages.forEach((messages, path) => {
+        setError(path, { type: "server", message: messages.join("\n") })
     })
 
     return unmappedMessages.length > 0
