@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from "expo-router"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Button, Divider, RadioButton, Snackbar, Text, TextInput, useTheme } from "react-native-paper"
 import * as ImagePicker from "expo-image-picker"
 import { SaveFormat, ImageManipulator } from "expo-image-manipulator"
@@ -15,12 +15,23 @@ import { SelectedToppingInfo, StoreImageUploadData } from "@/src/types/storeImag
 import { uploadStoreImage } from "@/src/api/ImageApi"
 import ImageUploadToppingSelector from "@/src/components/store/ImageUploadToppingSelector"
 import { SimulationToppingOption } from "@/src/types/storeApiResponse"
+import { toDisplayMessage } from "@/src/utils/apiErrorUtils"
 
 // メニュータイプの定義
 const MENU_TYPES = [
     { label: '通常メニュー', value: '1' },
     { label: '限定メニュー', value: '2' }
 ]
+
+// 保存フォーマットに対応する MIME タイプ
+// data URL のプレフィックスは「元画像の MIME」ではなく「実際に保存した形式」から
+// 引くこと。両者がズレると HEIC 等でサーバの形式チェック（jpeg|png|gif|webp）に
+// 弾かれて 400 になり、gif の場合は中身が JPEG のまま gif として登録される。
+const MIME_TYPE_BY_FORMAT: Record<SaveFormat, string> = {
+    [SaveFormat.JPEG]: 'image/jpeg',
+    [SaveFormat.PNG]: 'image/png',
+    [SaveFormat.WEBP]: 'image/webp'
+}
 
 export default function ImageUpload() {
     const { id } = useLocalSearchParams<{ id: string }>()
@@ -34,7 +45,6 @@ export default function ImageUpload() {
     const [loading, setLoading] = useState<boolean>(true)
     const [uploading, setUploading] = useState<boolean>(false)
     const [dataLoading, setDataLoading] = useState<boolean>(true)
-    const [error, setError] = useState<string | null>(null)
     const [snackBarVisible, setSnackBarVisible] = useState<boolean>(false)
     const [snackBarMessage, setSnackBarMessage] = useState<string>('')
     const [isSuccess, setIsSuccess] = useState<boolean>(false)
@@ -45,6 +55,22 @@ export default function ImageUpload() {
 
     const [selectedToppingInfo, setSelectedToppingInfo] = useState<Record<string, SelectedToppingInfo>>({})
 
+    /**
+     * スナックバーへメッセージを表示する
+     *
+     * 表示文言と成否を必ずセットで更新する。片方だけ更新すると、
+     * 成功扱いのまま本文が空になる／エラー色のまま前回の文言が残る、といった
+     * 表示崩れが起きるため、この関数以外から個別に更新しないこと。
+     *
+     * @param message 表示するメッセージ
+     * @param success 成功メッセージとして表示するか
+     */
+    const showSnackBar = useCallback((message: string, success: boolean = false) => {
+        setSnackBarMessage(message)
+        setIsSuccess(success)
+        setSnackBarVisible(true)
+    }, [])
+
     // 画像ピッカーの権限確認
     useEffect(() => {
         (async () => {
@@ -52,19 +78,17 @@ export default function ImageUpload() {
 
             if (galleryStatus.status === 'denied' ||
                 (galleryStatus.accessPrivileges === 'none')) {
-                setError("本画面では画像へのアクセス許可が必要です。")
-                setSnackBarVisible(true)
+                showSnackBar("本画面では画像へのアクセス許可が必要です。")
             }
 
             // 制限付きアクセスの場合（必要に応じて）
             if (galleryStatus.accessPrivileges === 'limited') {
-                setSnackBarMessage("一部の写真のみへのアクセスが許可されています")
-                setSnackBarVisible(true)
+                showSnackBar("一部の写真のみへのアクセスが許可されています")
             }
 
             setLoading(false)
         })()
-    }, [])
+    }, [showSnackBar])
 
     // トッピング情報の取得
     useEffect(() => {
@@ -97,15 +121,14 @@ export default function ImageUpload() {
                 // console.log("formattedOption：", JSON.stringify(toppingOptions, null, 2))
             } catch (error) {
                 console.error("トッピングコール情報取得エラー：", error)
-                setError("トッピングコール情報取得時にエラーが発生しました。")
-                setSnackBarVisible(true)
+                showSnackBar(toDisplayMessage(error, "トッピングコール情報取得時にエラーが発生しました。"))
             } finally {
                 setDataLoading(false)
             }
         }
         fetchToppingData()
 
-    }, [id])
+    }, [id, showSnackBar])
 
     /**
      * 画像選択ダイアログを表示し、選択された画像をprocessImageに渡す
@@ -126,8 +149,7 @@ export default function ImageUpload() {
             }
         } catch (error) {
             console.error("画像選択時にエラーが発生：", error)
-            setError("画像選択時にエラーが発生しました。")
-            setSnackBarVisible(true)
+            showSnackBar("画像選択時にエラーが発生しました。")
         }
     }
 
@@ -161,7 +183,10 @@ export default function ImageUpload() {
                 base64: true
             })
 
-            const formattedBase64 = `data:${mimeType};base64,${result.base64}`
+            // プレフィックスは保存に使った format から引く。元の mimeType を使うと
+            // HEIC 等がそのまま入って 400 になる（getFormatFromMimeType が JPEG へ
+            // フォールバックしても、宣言だけ HEIC のままになるため）
+            const formattedBase64 = `data:${MIME_TYPE_BY_FORMAT[format]};base64,${result.base64}`
             // console.log("画像サイズ圧縮後：", formattedBase64)
 
             // 処理後の画像をステートに保存
@@ -169,13 +194,16 @@ export default function ImageUpload() {
             setImageBase64(formattedBase64 || null)
         } catch (error) {
             console.error("画像サイズ圧縮中にエラーが発生:", error)
-            setError("画像サイズ圧縮処理に失敗しました。")
-            setSnackBarVisible(true)
+            showSnackBar("画像サイズ圧縮処理に失敗しました。")
         }
     }
 
     /**
      * MIMEタイプをチェックしてBase64形式で画像を決める
+     *
+     * サーバが受け付けない形式（HEIC/HEIF・BMP 等）や mimeType 不明の場合は
+     * JPEG へ再エンコードして必ず許可形式に正規化する。
+     *
      * @param mimeType MIMEタイプ
      * @returns Base64形式で画像を保存する形式
      */
@@ -227,9 +255,7 @@ export default function ImageUpload() {
             await uploadStoreImage(id, uploadData)
 
             // 完了表示
-            setIsSuccess(true)
-            setSnackBarMessage("画像アップロード処理が完了しました。")
-            setSnackBarVisible(true)
+            showSnackBar("画像アップロード処理が完了しました。", true)
 
             // スナックバー表示後にMAPに遷移する。
             setTimeout(() => {
@@ -240,8 +266,9 @@ export default function ImageUpload() {
 
         } catch (error) {
             console.error('アップロードエラー:', error)
-            setError(error instanceof Error ? error.message : '画像のアップロードに失敗しました')
-            setSnackBarVisible(true)
+            // 画像形式エラーは 400 で「無効な画像データ形式です」等が返るため、
+            // サーバのメッセージをそのまま出す（details があればそちらを優先）
+            showSnackBar(toDisplayMessage(error, '画像のアップロードに失敗しました'))
         } finally {
             setUploading(false)
         }
@@ -395,7 +422,7 @@ export default function ImageUpload() {
                     backgroundColor: isSuccess ? theme.colors.primary : theme.colors.error
                 }}
             >
-                {isSuccess ? snackBarMessage : error}
+                {snackBarMessage}
             </Snackbar>
         </SafeAreaView>
     )
