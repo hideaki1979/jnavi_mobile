@@ -2,7 +2,7 @@ import {
     View, ScrollView, Platform, KeyboardAvoidingView, StyleSheet
 } from "react-native"
 import {
-    Text, TextInput, Button, useTheme, Switch, Snackbar,
+    Text, Button, useTheme, Switch, Snackbar,
     List
 } from "react-native-paper"
 import { useForm, Controller } from "react-hook-form"
@@ -20,6 +20,10 @@ import { FontAwesome6 } from "@expo/vector-icons"
 import { generateToppingCalls } from "@/src/utils/toppingFormatter"
 import StoreRegisterToppingOptionSelector from "@/src/components/store/StoreRegisterToppingOptionSelector"
 import { getToppingCallOptions } from "@/src/api/toppingApi"
+import FormTextInput from "@/src/components/inputs/FormTextInput"
+import { STORE_TEXT_MAX_LENGTH } from "@/src/constants/validation"
+import { applyApiFieldErrors } from "@/src/utils/apiErrorUtils"
+import { STORE_TEXT_FIELD_NAMES, trimStoreTextFields } from "@/src/utils/storeFormUtils"
 
 /**
  * 店舗情報更新画面コンポーネント
@@ -30,7 +34,7 @@ import { getToppingCallOptions } from "@/src/api/toppingApi"
  */
 export default function StoreUpdate() {
     // フォームの状態管理 (React Hook Form)
-    const { control, handleSubmit, formState: { isSubmitting }, reset } = useForm<StoreData>({
+    const { control, handleSubmit, setError, formState: { isSubmitting }, reset } = useForm<StoreData>({
         defaultValues: {
             // デフォルト値を設定
             store_name: "",
@@ -141,9 +145,9 @@ export default function StoreUpdate() {
                 selectedPostCallOptions
             )
 
-            // 送信データを作成
+            // 送信データを作成（保存値と揃えるためテキスト項目はtrim済みで送る）
             const submitData = {
-                ...data,
+                ...trimStoreTextFields(data),
                 topping_calls: toppingCalls
             }
 
@@ -169,7 +173,15 @@ export default function StoreUpdate() {
 
         } catch (error) {
             // エラー処理
-            setSnackbarMessage(error instanceof Error ? error.message : "店舗情報登録処理でエラーが発生しました")
+            // 400のdetailsは各入力欄のインラインエラーへ回し、
+            // 入力欄を持たない項目の分だけスナックバーに出す
+            console.error("店舗情報更新エラー：", error)
+            setSnackbarMessage(applyApiFieldErrors(
+                error,
+                setError,
+                STORE_TEXT_FIELD_NAMES,
+                "店舗情報更新処理でエラーが発生しました"
+            ))
             setSnackbarError(true)
             setSnackbarVisible(true)
         }
@@ -249,129 +261,39 @@ export default function StoreUpdate() {
                 >
                     <StatusBar style={theme.dark ? "light" : "dark"} />
                     {/* 基本情報入力フィールド群 */}
-                    <Controller
+                    <FormTextInput
                         control={control}
                         name="store_name"
-                        rules={{
-                            required: "店舗名は必須項目です"
-                        }}
-                        render={({ field, fieldState: { error } }) => (
-                            <>
-                                <TextInput
-                                    mode="outlined"
-                                    label={
-                                        <Text>
-                                            店舗名 <Text style={{ color: theme.colors.error }}>*</Text>
-                                        </Text>
-                                    }
-                                    value={field.value}
-                                    onChangeText={field.onChange}
-                                    onBlur={field.onBlur}
-                                    error={!!error}
-                                />
-                                {error && (
-                                    <Text style={{ color: theme.colors.error, fontSize: 10 }}>
-                                        {error.message}
-                                    </Text>
-                                )}
-                            </>
-                        )}
+                        label="店舗名"
+                        isRequired={true}
+                        maxLength={STORE_TEXT_MAX_LENGTH.STORE_NAME}
                     />
-                    <Controller
+                    <FormTextInput
                         control={control}
                         name="branch_name"
-                        render={({ field }) => (
-                            <TextInput
-                                mode="outlined"
-                                label="支店名"
-                                value={field.value}
-                                onChangeText={field.onChange}
-                            />
-                        )}
+                        label="支店名"
+                        maxLength={STORE_TEXT_MAX_LENGTH.BRANCH_NAME}
                     />
-                    <Controller
+                    <FormTextInput
                         control={control}
                         name="address"
-                        rules={{
-                            required: "住所は必須項目です"
-                        }}
-                        render={({ field, fieldState: { error } }) => (
-                            <>
-                                <TextInput
-                                    mode="outlined"
-                                    label={
-                                        <Text>
-                                            住所 <Text style={{ color: theme.colors.error }}>*</Text>
-                                        </Text>
-                                    }
-                                    value={field.value}
-                                    onChangeText={field.onChange}
-                                    onBlur={field.onBlur}
-                                    error={!!error}
-                                />
-                                {error && (
-                                    <Text style={{ color: theme.colors.error, fontSize: 10 }}>
-                                        {error.message}
-                                    </Text>
-                                )}
-                            </>
-                        )}
+                        label="住所"
+                        isRequired={true}
+                        maxLength={STORE_TEXT_MAX_LENGTH.ADDRESS}
                     />
-                    <Controller
+                    <FormTextInput
                         control={control}
                         name="business_hours"
-                        rules={{
-                            required: "営業時間は必須項目です"
-                        }}
-                        render={({ field, fieldState: { error } }) => (
-                            <>
-                                <TextInput
-                                    mode="outlined"
-                                    label={
-                                        <Text>
-                                            営業時間 <Text style={{ color: theme.colors.error }}>*</Text>
-                                        </Text>
-                                    }
-                                    value={field.value}
-                                    onChangeText={field.onChange}
-                                    onBlur={field.onBlur}
-                                    error={!!error}
-                                />
-                                {error && (
-                                    <Text style={{ color: theme.colors.error, fontSize: 10 }}>
-                                        {error.message}
-                                    </Text>
-                                )}
-                            </>
-                        )}
+                        label="営業時間"
+                        isRequired={true}
+                        maxLength={STORE_TEXT_MAX_LENGTH.BUSINESS_HOURS}
                     />
-                    <Controller
+                    <FormTextInput
                         control={control}
                         name="regular_holidays"
-                        rules={{
-                            required: "定休日は必須項目です"
-                        }}
-                        render={({ field, fieldState: { error } }) => (
-                            <>
-                                <TextInput
-                                    mode="outlined"
-                                    label={
-                                        <Text>
-                                            定休日 <Text style={{ color: theme.colors.error }}>*</Text>
-                                        </Text>
-                                    }
-                                    value={field.value}
-                                    onChangeText={field.onChange}
-                                    onBlur={field.onBlur}
-                                    error={!!error}
-                                />
-                                {error && (
-                                    <Text style={{ color: theme.colors.error, fontSize: 10 }}>
-                                        {error.message}
-                                    </Text>
-                                )}
-                            </>
-                        )}
+                        label="定休日"
+                        isRequired={true}
+                        maxLength={STORE_TEXT_MAX_LENGTH.REGULAR_HOLIDAYS}
                     />
 
                     {/* 事前食券購入有無ラジオボタン */}
@@ -435,38 +357,22 @@ export default function StoreUpdate() {
                     </List.Accordion>
 
                     {/* 詳細情報入力フィールド群 */}
-                    <Controller
+                    <FormTextInput
                         control={control}
                         name="topping_details"
-                        render={({ field }) => (
-                            <TextInput
-                                mode="outlined"
-                                label="トッピング詳細"
-                                value={field.value}
-                                onChangeText={field.onChange}
-                                multiline={true}
-                                numberOfLines={4}
-                                style={{
-                                    minHeight: 120
-                                }}
-                            />
-                        )}
+                        label="トッピング詳細"
+                        maxLength={STORE_TEXT_MAX_LENGTH.TOPPING_DETAILS}
+                        multiline={true}
+                        numberOfLines={4}
                     />
 
-                    <Controller
+                    <FormTextInput
                         control={control}
                         name="call_details"
-                        render={({ field }) => (
-                            <TextInput
-                                mode="outlined"
-                                label="コール詳細"
-                                value={field.value}
-                                onChangeText={field.onChange}
-                                multiline={true}
-                                numberOfLines={4}
-                                style={{ minHeight: 120 }}
-                            />
-                        )}
+                        label="コール詳細"
+                        maxLength={STORE_TEXT_MAX_LENGTH.CALL_DETAILS}
+                        multiline={true}
+                        numberOfLines={4}
                     />
 
                     {/* 全体増量の有無ラジオ選択 */}
@@ -500,20 +406,13 @@ export default function StoreUpdate() {
                             )}
                         />
                     </View>
-                    <Controller
+                    <FormTextInput
                         control={control}
                         name="lot_detail"
-                        render={({ field }) => (
-                            <TextInput
-                                mode="outlined"
-                                label="ロット詳細"
-                                value={field.value}
-                                onChangeText={field.onChange}
-                                multiline={true}
-                                numberOfLines={4}
-                                style={{ minHeight: 120 }}
-                            />
-                        )}
+                        label="ロット詳細"
+                        maxLength={STORE_TEXT_MAX_LENGTH.LOT_DETAIL}
+                        multiline={true}
+                        numberOfLines={4}
                     />
                     {/* 登録ボタン */}
                     <Button

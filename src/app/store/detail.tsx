@@ -11,6 +11,7 @@ import LoadingErrorContainer from '@/src/components/feedback/LoadingErrorContain
 import HeaderAppBar from '@/src/components/navigation/HeaderAppBar'
 import { FormattedToppingOptionNames } from '@/src/types/topping'
 import ToppingOptionsAccordion from '@/src/components/store/ToppingOptionsAccordion'
+import { toDisplayMessage } from '@/src/utils/apiErrorUtils'
 
 
 /**
@@ -67,7 +68,7 @@ export default function StoreDetails() {
 
             } catch (err) {
                 console.error("店舗情報取得処理エラー：", err)
-                setError(err instanceof Error ? err.message : "店舗情報取得でエラーが発生しました。")
+                setError(toDisplayMessage(err, "店舗情報取得でエラーが発生しました。"))
                 setSnackBarVisible(true)
             } finally {
                 setLoading(false)
@@ -112,7 +113,7 @@ export default function StoreDetails() {
                             }, 3000)
                         } catch (error) {
                             console.error("閉店処理エラー：", error)
-                            setError(error instanceof Error ? error.message : "閉店処理でエラーが発生しました。")
+                            setError(toDisplayMessage(error, "閉店処理でエラーが発生しました。"))
                             setSnackBarVisible(true)
                         }
                     }
